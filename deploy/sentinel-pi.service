@@ -1,0 +1,41 @@
+[Unit]
+Description=Sentinel-Pi Deep Inspector (IDS/IPS)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/sentinel-pi
+ExecStart=/opt/sentinel-pi/sentinel-pi \
+  --interface wlan0 \
+  --models /opt/sentinel-pi/models \
+  --dash :8080 \
+  --pcap-dir /var/lib/sentinel-pi/captures \
+  --pcap-max-mb 100 \
+  --pcap-file-mb 25 \
+  --max-ram-mb 2800 \
+  --warn-ram-mb 2200 \
+  --max-flows 50000
+
+Restart=on-failure
+RestartSec=5
+
+# Security hardening
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/sentinel-pi /var/log/sentinel-pi
+ProtectHome=true
+PrivateTmp=true
+
+# Memory limit (hard cap at 3GB, kernel kills process)
+MemoryMax=3G
+MemoryHigh=2.5G
+
+StandardOutput=append:/var/log/sentinel-pi/sentinel.log
+StandardError=append:/var/log/sentinel-pi/sentinel.err
+
+[Install]
+WantedBy=multi-user.target

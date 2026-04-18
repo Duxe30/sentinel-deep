@@ -1,0 +1,174 @@
+{
+  "num_features": 74,
+  "feature_names": [
+    "flow_duration",
+    "total_fwd_packets",
+    "total_bwd_packets",
+    "total_length_fwd",
+    "total_length_bwd",
+    "fwd_pkt_len_max",
+    "fwd_pkt_len_min",
+    "fwd_pkt_len_mean",
+    "fwd_pkt_len_std",
+    "bwd_pkt_len_max",
+    "bwd_pkt_len_min",
+    "bwd_pkt_len_mean",
+    "bwd_pkt_len_std",
+    "pkt_len_max",
+    "pkt_len_min",
+    "pkt_len_mean",
+    "pkt_len_std",
+    "pkt_len_var",
+    "flow_bytes_per_sec",
+    "flow_pkts_per_sec",
+    "fwd_pkts_per_sec",
+    "bwd_pkts_per_sec",
+    "flow_iat_mean",
+    "flow_iat_std",
+    "flow_iat_max",
+    "flow_iat_min",
+    "fwd_iat_total",
+    "fwd_iat_mean",
+    "fwd_iat_std",
+    "fwd_iat_max",
+    "fwd_iat_min",
+    "bwd_iat_total",
+    "bwd_iat_mean",
+    "bwd_iat_std",
+    "bwd_iat_max",
+    "bwd_iat_min",
+    "fwd_psh_flags",
+    "bwd_psh_flags",
+    "fwd_urg_flags",
+    "bwd_urg_flags",
+    "fin_flag_count",
+    "syn_flag_count",
+    "rst_flag_count",
+    "psh_flag_count",
+    "ack_flag_count",
+    "urg_flag_count",
+    "ece_flag_count",
+    "fwd_header_len",
+    "bwd_header_len",
+    "fwd_seg_size_avg",
+    "bwd_seg_size_avg",
+    "fwd_seg_size_min",
+    "fwd_byts_b_avg",
+    "fwd_pkts_b_avg",
+    "fwd_blk_rate_avg",
+    "bwd_byts_b_avg",
+    "bwd_pkts_b_avg",
+    "bwd_blk_rate_avg",
+    "subflow_fwd_pkts",
+    "subflow_fwd_byts",
+    "subflow_bwd_pkts",
+    "subflow_bwd_byts",
+    "active_mean",
+    "active_std",
+    "active_max",
+    "active_min",
+    "idle_mean",
+    "idle_std",
+    "idle_max",
+    "idle_min",
+    "init_fwd_win_byts",
+    "init_bwd_win_byts",
+    "down_up_ratio",
+    "pkt_size_avg"
+  ],
+  "label_map": {
+    "benign": 0,
+    "botnet": 1,
+    "brute_force": 2,
+    "ddos": 3,
+    "dos": 4,
+    "exploit": 5,
+    "infiltration": 6,
+    "portscan": 7,
+    "web_attack": 8
+  },
+  "random_seed": 42,
+  "binary": {
+    "per_model_val": {
+      "lightgbm": {
+        "threshold": 0.07478716136876737,
+        "fbeta": 0.9984281453696705,
+        "precision": 0.9923145834315621,
+        "recall": 0.9999683243585683,
+        "auc": 0.99997021729259
+      },
+      "xgboost": {
+        "threshold": 0.0783793032169342,
+        "fbeta": 0.9983174779880578,
+        "precision": 0.9921423183303998,
+        "recall": 0.999873297434273,
+        "auc": 0.9999670494075834
+      },
+      "catboost": {
+        "threshold": 0.0921656017012994,
+        "fbeta": 0.9983205821981712,
+        "precision": 0.9922824224705679,
+        "recall": 0.9998416217928413,
+        "auc": 0.9999623436239808
+      }
+    },
+    "ensemble_weights": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "thresholds": {
+      "fbeta": {
+        "beta": 2.0,
+        "threshold": 0.07478716136876737,
+        "fbeta": 0.9984281453696705,
+        "precision": 0.9923145834315621,
+        "recall": 0.9999683243585683
+      },
+      "fpr_budget": {
+        "target_fpr": 0.01,
+        "threshold": 0.07478716136876737,
+        "fpr": 0.00990680713128039,
+        "tpr": 0.9999683243585683
+      },
+      "chosen": 0.07478716136876737
+    },
+    "test": {
+      "precision": 0.9932508967340004,
+      "recall": 0.9999366477137743,
+      "f1": 0.9965825592132783,
+      "auc": 0.9999767930106468,
+      "fpr": 0.008691071898867527,
+      "fnr": 6.335228622562916e-05,
+      "tn": 48932,
+      "fp": 429,
+      "fn": 4,
+      "tp": 63135
+    }
+  },
+  "binary_threshold": 0.07478716136876737,
+  "ensemble_weights": [
+    1.0,
+    0.0,
+    0.0
+  ],
+  "multiclass": {
+    "models_used": [
+      "lightgbm",
+      "xgboost",
+      "catboost"
+    ],
+    "ensemble_weights": [
+      0.6,
+      0.4,
+      0.0
+    ],
+    "val_macro_f1": 0.8309163217170394,
+    "test": {
+      "accuracy": 0.98912,
+      "macro_f1": 0.8473363037306201,
+      "weighted_f1": 0.9899488722600804,
+      "classification_report": "              precision    recall  f1-score   support\n\n      benign     0.9997    0.9910    0.9953     49361\n      botnet     0.5385    0.9545    0.6885        22\n brute_force     0.9786    1.0000    0.9892       137\n        ddos     0.9927    0.9901    0.9914     30814\n         dos     0.9884    0.9891    0.9888     27887\n     exploit     0.6712    0.9386    0.7827      1042\ninfiltration     0.1529    0.8276    0.2581        29\n    portscan     0.9913    0.9683    0.9797      3187\n  web_attack     0.9524    0.9524    0.9524        21\n\n    accuracy                         0.9891    112500\n   macro avg     0.8073    0.9568    0.8473    112500\nweighted avg     0.9914    0.9891    0.9899    112500\n"
+    }
+  }
+}
