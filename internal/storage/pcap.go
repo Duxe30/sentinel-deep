@@ -195,6 +195,52 @@ func (r *RotatingPCAP) Write(timestamp time.Time, data []byte) error {
 	return nil
 }
 
+// PCAPFile describes one rotated file on disk.
+type PCAPFile struct {
+	Name      string `json:"name"`
+	SizeBytes int64  `json:"size"`
+	ModTimeMs int64  `json:"mtime"`
+	Current   bool   `json:"current"`
+}
+
+// List enumerates *.pcap files in the capture directory, newest first.
+func (r *RotatingPCAP) List() []PCAPFile {
+	r.mu.Lock()
+	cur := r.currentName
+	r.mu.Unlock()
+
+	entries, err := os.ReadDir(r.dir)
+	if err != nil {
+		return nil
+	}
+	out := make([]PCAPFile, 0, len(entries))
+	for _, e := range entries {
+		if filepath.Ext(e.Name()) != ".pcap" {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		out = append(out, PCAPFile{
+			Name:      e.Name(),
+			SizeBytes: info.Size(),
+			ModTimeMs: info.ModTime().UnixMilli(),
+			Current:   e.Name() == cur,
+		})
+	}
+	// Sort newest first
+	for i := 1; i < len(out); i++ {
+		for j := i; j > 0 && out[j-1].ModTimeMs < out[j].ModTimeMs; j-- {
+			out[j], out[j-1] = out[j-1], out[j]
+		}
+	}
+	return out
+}
+
+// Dir returns the capture directory for download handlers.
+func (r *RotatingPCAP) Dir() string { return r.dir }
+
 // Close finalizes the current file
 func (r *RotatingPCAP) Close() error {
 	r.mu.Lock()

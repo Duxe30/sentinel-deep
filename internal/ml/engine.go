@@ -18,11 +18,11 @@ import (
 // ═══════════════════════════════════════════════════════════════════════════
 
 type Config struct {
-	NumFeatures      int            `json:"num_features"`
-	FeatureNames     []string       `json:"feature_names"`
-	LabelMap         map[string]int `json:"label_map"`
-	BinaryThreshold  float32        `json:"binary_threshold"`
-	EnsembleWeights  []float32      `json:"ensemble_weights"`
+	NumFeatures     int            `json:"num_features"`
+	FeatureNames    []string       `json:"feature_names"`
+	LabelMap        map[string]int `json:"label_map"`
+	BinaryThreshold float32        `json:"binary_threshold"`
+	EnsembleWeights []float32      `json:"ensemble_weights"`
 
 	Binary struct {
 		PerModelVal struct {
@@ -129,6 +129,7 @@ func NewEngine(modelsDir string) (*Engine, error) {
 
 	// Init ONNX runtime
 	if !ort.IsInitialized() {
+		ort.SetSharedLibraryPath("/usr/local/lib/libonnxruntime.so")
 		if err := ort.InitializeEnvironment(); err != nil {
 			return nil, fmt.Errorf("init onnx: %w", err)
 		}
@@ -377,3 +378,56 @@ func (e *Engine) Close() error {
 
 // GetConfig returns loaded configuration
 func (e *Engine) GetConfig() *Config { return e.cfg }
+
+// SetBinaryThreshold overrides the effective binary threshold (runtime tuning).
+func (e *Engine) SetBinaryThreshold(v float32) {
+	if v < 0.001 {
+		v = 0.001
+	}
+	if v > 0.99 {
+		v = 0.99
+	}
+	e.mu.Lock()
+	if e.cfg != nil {
+		e.cfg.BinaryThreshold = v
+	}
+	e.mu.Unlock()
+}
+
+// ModelStatus lists loaded ONNX sessions.
+type ModelStatus struct {
+	Name   string  `json:"name"`
+	File   string  `json:"file"`
+	Type   string  `json:"type"`
+	Weight float32 `json:"weight"`
+	Loaded bool    `json:"loaded"`
+}
+
+// Models returns live status of all 6 ensemble sessions.
+func (e *Engine) Models() []ModelStatus {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	bw := e.cfg.Binary.EnsembleWeights
+	mw := e.cfg.Multiclass.EnsembleWeights
+	w := func(ws []float32, i int) float32 {
+		if i < len(ws) {
+			return ws[i]
+		}
+		return 0
+	}
+	return []ModelStatus{
+		{"LightGBM (Binary)", "lgb_binary.onnx", "binary", w(bw, 0), e.lgbBinary != nil},
+		{"XGBoost (Binary)", "xgb_binary.onnx", "binary", w(bw, 1), e.xgbBinary != nil},
+		{"CatBoost (Binary)", "cat_binary.onnx", "binary", w(bw, 2), e.catBinary != nil},
+		{"LightGBM (Multiclass)", "lgb_multiclass.onnx", "multiclass", w(mw, 0), e.lgbMulti != nil},
+		{"XGBoost (Multiclass)", "xgb_multiclass.onnx", "multiclass", w(mw, 1), e.xgbMulti != nil},
+		{"CatBoost (Multiclass)", "cat_multiclass.onnx", "multiclass", w(mw, 2), e.catMulti != nil},
+	}
+}
+
+// Classes returns the ordered label list (from config label_map).
+func (e *Engine) Classes() []string {
+	cp := make([]string, len(e.labels))
+	copy(cp, e.labels)
+	return cp
+}

@@ -62,7 +62,29 @@ type Flow struct {
 	SNI      string
 	DNSQuery string
 
+	// Cached inference result (attached by periodic analyser, read by live stream).
+	// Stored as any to avoid import cycle; dashboard package type-asserts.
+	CachedPrediction any
+	CachedFusion     any
+	CachedAt         time.Time
+
 	mu sync.Mutex
+}
+
+// SetCached stores the latest inference result for this flow.
+func (f *Flow) SetCached(pred, fusion any) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.CachedPrediction = pred
+	f.CachedFusion = fusion
+	f.CachedAt = time.Now()
+}
+
+// GetCached returns the most recent cached prediction/fusion (may be nil).
+func (f *Flow) GetCached() (pred, fusion any, at time.Time) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.CachedPrediction, f.CachedFusion, f.CachedAt
 }
 
 type FlowKey struct {
@@ -296,6 +318,115 @@ func (ft *FlowTracker) Count() int {
 	ft.mu.RLock()
 	defer ft.mu.RUnlock()
 	return len(ft.flows)
+}
+
+// FlowSnapshot is an immutable summary of a live flow for JSON export.
+type FlowSnapshot struct {
+	SrcIP      string  `json:"src"`
+	DstIP      string  `json:"dst"`
+	SrcPort    uint16  `json:"sport"`
+	DstPort    uint16  `json:"dport"`
+	Proto      uint8   `json:"proto"`
+	AppProto   string  `json:"app,omitempty"`
+	FwdPackets uint32  `json:"fwd_pkts"`
+	BwdPackets uint32  `json:"bwd_pkts"`
+	FwdBytes   uint64  `json:"fwd_bytes"`
+	BwdBytes   uint64  `json:"bwd_bytes"`
+	StartTime  int64   `json:"start_ms"` // unix ms
+	LastSeen   int64   `json:"last_ms"`
+	DurationMs int64   `json:"duration_ms"`
+	SYN        uint32  `json:"syn"`
+	ACK        uint32  `json:"ack"`
+	RST        uint32  `json:"rst"`
+	FIN        uint32  `json:"fin"`
+	PSH        uint32  `json:"psh"`
+	SNI        string  `json:"sni,omitempty"`
+	DNSQuery   string  `json:"dns_query,omitempty"`
+	MLScore    float32 `json:"ml_score,omitempty"`
+	AttackType string  `json:"attack_type,omitempty"`
+	Level      string  `json:"level,omitempty"`
+}
+
+// Snapshot returns a read-only list of active flows (bounded by max).
+// flows are sorted by LastSeen desc so newest appear first.
+func (ft *FlowTracker) Snapshot(max int) []FlowSnapshot {
+	ft.mu.RLock()
+	defer ft.mu.RUnlock()
+
+	out := make([]FlowSnapshot, 0, len(ft.flows))
+	for _, f := range ft.flows {
+		f.mu.Lock()
+		fs := FlowSnapshot{
+			SrcIP:      net.IP(f.Key.SrcIP[:]).String(),
+			DstIP:      net.IP(f.Key.DstIP[:]).String(),
+			SrcPort:    f.Key.SrcPort,
+			DstPort:    f.Key.DstPort,
+			Proto:      f.Key.Proto,
+			AppProto:   f.AppProto,
+			FwdPackets: f.FwdPackets,
+			BwdPackets: f.BwdPackets,
+			FwdBytes:   f.FwdBytes,
+			BwdBytes:   f.BwdBytes,
+			StartTime:  f.StartTime.UnixMilli(),
+			LastSeen:   f.LastSeen.UnixMilli(),
+			DurationMs: f.LastSeen.Sub(f.StartTime).Milliseconds(),
+			SYN:        f.SYNCount,
+			ACK:        f.ACKCount,
+			RST:        f.RSTCount,
+			FIN:        f.FINCount,
+			PSH:        f.PSHCount,
+			SNI:        f.SNI,
+			DNSQuery:   f.DNSQuery,
+		}
+		if fr, ok := f.CachedFusion.(interface {
+			GetScore() float32
+			GetAttack() string
+			GetLevelStr() string
+		}); ok && fr != nil {
+			fs.MLScore = fr.GetScore()
+			fs.AttackType = fr.GetAttack()
+			fs.Level = fr.GetLevelStr()
+		}
+		f.mu.Unlock()
+		out = append(out, fs)
+	}
+
+	// Sort newest first
+	for i := 1; i < len(out); i++ {
+		for j := i; j > 0 && out[j-1].LastSeen < out[j].LastSeen; j-- {
+			out[j], out[j-1] = out[j-1], out[j]
+		}
+	}
+	if max > 0 && len(out) > max {
+		out = out[:max]
+	}
+	return out
+}
+
+// FindByKey looks up a flow by src:sport→dst:dport/proto tuple.
+// Returns nil if not present. The caller MUST NOT mutate the flow.
+func (ft *FlowTracker) FindByKey(src, dst net.IP, sport, dport uint16, proto uint8) *Flow {
+	key := NewFlowKey(src, dst, sport, dport, proto)
+	ft.mu.RLock()
+	defer ft.mu.RUnlock()
+	if f, ok := ft.flows[key]; ok {
+		return f
+	}
+	if f, ok := ft.flows[key.Reverse()]; ok {
+		return f
+	}
+	return nil
+}
+
+// ForEach iterates active flows under read lock. fn must return false to stop.
+func (ft *FlowTracker) ForEach(fn func(*Flow) bool) {
+	ft.mu.RLock()
+	defer ft.mu.RUnlock()
+	for _, f := range ft.flows {
+		if !fn(f) {
+			return
+		}
+	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

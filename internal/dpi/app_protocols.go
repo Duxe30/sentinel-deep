@@ -26,10 +26,10 @@ type DNSPacket struct {
 	Answers   []DNSResource
 
 	// Threat indicators
-	Entropy       float64 // >4.0 suggests DGA/tunneling
-	IsTunneling   bool    // heuristic
-	LongestLabel  int
-	HasTXT        bool
+	Entropy      float64 // >4.0 suggests DGA/tunneling
+	IsTunneling  bool    // heuristic
+	LongestLabel int
+	HasTXT       bool
 }
 
 type DNSQuestion struct {
@@ -58,10 +58,22 @@ func ParseDNS(data []byte) *DNSPacket {
 		ANCount: binary.BigEndian.Uint16(data[6:8]),
 	}
 
+	// Cap question count to a sane maximum (real DNS packets have 1-a few).
+	// A random/malformed packet can claim 65535 questions and OOM us.
+	maxQuestions := pkt.QDCount
+	if maxQuestions > 32 {
+		maxQuestions = 32
+	}
+
 	offset := 12
-	for i := uint16(0); i < pkt.QDCount && offset < len(data); i++ {
+	for i := uint16(0); i < maxQuestions && offset < len(data); i++ {
+		prevOffset := offset
 		name, n := readDNSName(data, offset)
 		offset += n
+		// Safeguard: if readDNSName didn't advance, bail out (malformed/loop).
+		if offset <= prevOffset {
+			break
+		}
 		if offset+4 > len(data) {
 			break
 		}
@@ -96,13 +108,21 @@ func ParseDNS(data []byte) *DNSPacket {
 }
 
 // readDNSName reads a DNS name starting at offset, handling compression.
+// Safely handles malformed/adversarial input (compression loops, long labels).
 func readDNSName(data []byte, offset int) (string, int) {
 	var parts []string
 	start := offset
 	jumped := false
 	bytesRead := 0
+	maxJumps := 10   // prevent compression-pointer loops
+	maxLabels := 127 // DNS spec max
+	jumps := 0
+	labels := 0
 
 	for offset < len(data) {
+		if labels >= maxLabels {
+			break
+		}
 		l := int(data[offset])
 		if l == 0 {
 			offset++
@@ -117,6 +137,13 @@ func readDNSName(data []byte, offset int) (string, int) {
 			if !jumped {
 				bytesRead += 2
 			}
+			jumps++
+			if jumps > maxJumps {
+				break // pointer loop protection
+			}
+			if newOff >= len(data) || newOff == offset {
+				break
+			}
 			offset = newOff
 			jumped = true
 			continue
@@ -126,6 +153,7 @@ func readDNSName(data []byte, offset int) (string, int) {
 		}
 		parts = append(parts, string(data[offset+1:offset+1+l]))
 		offset += 1 + l
+		labels++
 		if !jumped {
 			bytesRead += 1 + l
 		}
@@ -184,29 +212,55 @@ func ParseHTTP(data []byte) *HTTPPacket {
 	}
 
 	firstLine := string(data[:crlf])
-	parts := strings.Fields(firstLine)
-	if len(parts) < 3 {
-		return nil
-	}
 
 	pkt := &HTTPPacket{
 		Headers: make(map[string]string),
 	}
 
-	// Request or response?
-	if strings.HasPrefix(parts[0], "HTTP/") {
+	// ─────────────────────────────────────────────────────────────────
+	// Response: "HTTP/1.1 200 OK"
+	// Request:  "METHOD URI HTTP/x.y"  (URI may contain spaces!)
+	// ─────────────────────────────────────────────────────────────────
+	if strings.HasPrefix(firstLine, "HTTP/") {
 		pkt.IsRequest = false
-		pkt.Version = parts[0]
-		fmt.Sscanf(parts[1], "%d", &pkt.StatusCode)
+		respParts := strings.SplitN(firstLine, " ", 3)
+		if len(respParts) < 2 {
+			return nil
+		}
+		pkt.Version = respParts[0]
+		fmt.Sscanf(respParts[1], "%d", &pkt.StatusCode)
 	} else {
 		pkt.IsRequest = true
-		pkt.Method = parts[0]
-		pkt.URI = parts[1]
-		pkt.Version = parts[2]
 
-		// SQLi heuristic
+		// Method = first space-separated token
+		methodEnd := strings.IndexByte(firstLine, ' ')
+		if methodEnd < 0 {
+			return nil
+		}
+		pkt.Method = firstLine[:methodEnd]
+
+		// Version = last " HTTP/" token (URIs can contain spaces)
+		versionStart := strings.LastIndex(firstLine, " HTTP/")
+		if versionStart < 0 || versionStart <= methodEnd {
+			pkt.URI = strings.TrimSpace(firstLine[methodEnd:])
+		} else {
+			pkt.URI = firstLine[methodEnd+1 : versionStart]
+			pkt.Version = firstLine[versionStart+1:]
+		}
+
+		// SQLi heuristic — scan the FULL URI (including spaces)
 		lowURI := strings.ToLower(pkt.URI)
-		sqliPatterns := []string{"union select", "' or 1=1", "'--", "/*", "xp_", "waitfor delay"}
+		sqliPatterns := []string{
+			"union select", "union%20select", "union+select",
+			"' or ", "' or%20", "'+or+",
+			"or 1=1", "or%201=1", "or+1=1",
+			"'--", "' --", "'%20--",
+			"/*", "*/", "xp_cmdshell", "xp_",
+			"waitfor delay", "waitfor%20delay",
+			"sleep(", "benchmark(",
+			"concat(", "char(", "ascii(",
+			"information_schema", "database()",
+		}
 		for _, p := range sqliPatterns {
 			if strings.Contains(lowURI, p) {
 				pkt.HasSQLi = true
@@ -215,7 +269,15 @@ func ParseHTTP(data []byte) *HTTPPacket {
 		}
 
 		// XSS heuristic
-		xssPatterns := []string{"<script", "javascript:", "onerror=", "onload="}
+		xssPatterns := []string{
+			"<script", "%3cscript", "&lt;script",
+			"javascript:", "javascript%3a",
+			"onerror=", "onload=", "onclick=", "onmouseover=",
+			"onfocus=", "onblur=", "onchange=",
+			"eval(", "alert(", "prompt(", "confirm(",
+			"document.cookie", "document.location",
+			"<iframe", "<object", "<embed",
+		}
 		for _, p := range xssPatterns {
 			if strings.Contains(lowURI, p) {
 				pkt.HasXSS = true
@@ -273,8 +335,8 @@ type TLSPacket struct {
 	ECPointFormats []uint8
 
 	// JA3 fingerprint (md5 of ClientHello parameters)
-	JA3       string
-	JA3Hash   string
+	JA3     string
+	JA3Hash string
 }
 
 func ParseTLS(data []byte) *TLSPacket {

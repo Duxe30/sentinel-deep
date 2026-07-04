@@ -50,13 +50,13 @@ type Stats struct {
 // ═══════════════════════════════════════════════════════════════════════════
 
 type Config struct {
-	Interface    string        // e.g., "wlan0", "eth0"
-	BlockSize    int           // default: 1 MB
-	BlockCount   int           // default: 64 (total = 64 MB)
-	SnapLen      int           // max bytes per packet; default: 65535 (full)
-	Timeout      time.Duration // block timeout; default: 100ms
-	Promiscuous  bool          // default: true
-	ChannelSize  int           // output channel buffer; default: 10000
+	Interface   string        // e.g., "wlan0", "eth0"
+	BlockSize   int           // default: 1 MB
+	BlockCount  int           // default: 64 (total = 64 MB)
+	SnapLen     int           // max bytes per packet; default: 65535 (full)
+	Timeout     time.Duration // block timeout; default: 100ms
+	Promiscuous bool          // default: true
+	ChannelSize int           // output channel buffer; default: 10000
 }
 
 type Capture struct {
@@ -230,7 +230,7 @@ func (c *Capture) walkBlock(block []byte, hdr *tpacketBlockDesc) {
 	for i := uint32(0); i < numPkts; i++ {
 		pkt := (*tpacket3Hdr)(unsafe.Pointer(&block[offset]))
 
-		data := block[offset+pkt.mac : offset+pkt.mac+pkt.snaplen]
+		data := block[offset+uint32(pkt.mac) : offset+uint32(pkt.mac)+pkt.snaplen]
 
 		// Copy data because ring buffer gets reused
 		dataCopy := make([]byte, len(data))
@@ -264,6 +264,20 @@ func (c *Capture) walkBlock(block []byte, hdr *tpacketBlockDesc) {
 // Packets returns the output channel.
 func (c *Capture) Packets() <-chan *Packet {
 	return c.out
+}
+
+// Interface returns the configured capture interface name.
+func (c *Capture) Interface() string { return c.cfg.Interface }
+
+// Promiscuous returns whether promiscuous mode was requested.
+func (c *Capture) Promiscuous() bool { return c.cfg.Promiscuous }
+
+// SnapLen returns the configured snap length.
+func (c *Capture) SnapLen() int { return c.cfg.SnapLen }
+
+// ChannelDepth returns current output channel usage (for backpressure monitoring).
+func (c *Capture) ChannelDepth() (used, cap int) {
+	return len(c.out), c.cfg.ChannelSize
 }
 
 // Stats returns current statistics snapshot.
@@ -306,19 +320,19 @@ type tpacketReq3 struct {
 }
 
 type tpacketBlockDesc struct {
-	version     uint32
+	version      uint32
 	offsetToPriv uint32
-	hdr         tpacketHdrV1
+	hdr          tpacketHdrV1
 }
 
 type tpacketHdrV1 struct {
-	blockStatus       uint32
-	numPkts           uint32
-	offsetToFirstPkt  uint32
-	blkLen            uint32
-	seqNum            uint64
-	tsFirstPkt        [2]uint32
-	tsLastPkt         [2]uint32
+	blockStatus      uint32
+	numPkts          uint32
+	offsetToFirstPkt uint32
+	blkLen           uint32
+	seqNum           uint64
+	tsFirstPkt       [2]uint32
+	tsLastPkt        [2]uint32
 }
 
 type tpacket3Hdr struct {

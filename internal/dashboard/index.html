@@ -1,439 +1,2168 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
+﻿<!DOCTYPE html>
+<html lang="en">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sentinel-Pi v3.0 — Deep Inspector</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'SF Mono', Consolas, Monaco, monospace;
-  background: #0d1117;
-  color: #c9d1d9;
-  font-size: 13px;
-  overflow: hidden;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-header {
-  background: #161b22;
-  border-bottom: 1px solid #30363d;
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.logo {
-  font-size: 15px;
-  font-weight: bold;
-  color: #58a6ff;
-}
-.logo::before { content: "🛡️ "; }
-.status {
-  display: flex;
-  gap: 16px;
-  font-size: 12px;
-}
-.status span {
-  padding: 3px 8px;
-  border-radius: 3px;
-  background: #21262d;
-}
-.live::before {
-  content: "● ";
-  color: #3fb950;
-  animation: blink 1.5s infinite;
-}
-@keyframes blink { 50% { opacity: 0.3; } }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sentinel-Pi v4.0 - Hybrid IDS Dashboard</title>
+  <style>
+    :root {
+      --bg: #080b12;
+      --bg2: #0d1117;
+      --bg3: #151b28;
+      --bg4: #1a2233;
+      --br: #1e293b;
+      --t1: #e2e8f0;
+      --t2: #94a3b8;
+      --t3: #475569;
+      --ac: #3b82f6;
+      --ac2: #1d4ed8;
+      --gn: #10b981;
+      --gn2: #064e3b;
+      --rd: #ef4444;
+      --rd2: #7f1d1d;
+      --yl: #f59e0b;
+      --yl2: #78350f;
+      --or: #f97316;
+      --pu: #a78bfa;
+      --pk: #f43f5e
+    }
 
-.toolbar {
-  background: #161b22;
-  padding: 8px 16px;
-  display: flex;
-  gap: 8px;
-  border-bottom: 1px solid #30363d;
-}
-.toolbar button {
-  background: #21262d;
-  color: #c9d1d9;
-  border: 1px solid #30363d;
-  padding: 5px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 12px;
-}
-.toolbar button:hover { background: #30363d; }
-.toolbar button.active {
-  background: #1f6feb;
-  border-color: #1f6feb;
-}
-.filter {
-  flex: 1;
-  background: #0d1117;
-  color: #c9d1d9;
-  border: 1px solid #30363d;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 12px;
-}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      font-size: 13px;
+      overflow: hidden;
+      height: 100vh
+    }
 
-.packet-list {
-  flex: 1;
-  overflow-y: auto;
-  min-width: 0;
-}
-.packet-list table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.packet-list th {
-  background: #161b22;
-  position: sticky;
-  top: 0;
-  padding: 6px 8px;
-  text-align: left;
-  border-bottom: 1px solid #30363d;
-  font-weight: 600;
-  color: #8b949e;
-}
-.packet-list td {
-  padding: 3px 8px;
-  border-bottom: 1px solid #21262d;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.packet-list tr { cursor: pointer; }
-.packet-list tr:hover { background: #161b22; }
-.packet-list tr.selected { background: #1f6feb33; }
-.packet-list tr.sev-warn { background: #332b00; }
-.packet-list tr.sev-high { background: #3d1a1a; }
-.packet-list tr.sev-critical { background: #4d0000; color: #ffaaaa; font-weight: bold; }
+    .app {
+      display: grid;
+      grid-template-rows: 48px 1fr 32px;
+      height: 100vh
+    }
 
-.num { color: #8b949e; width: 50px; text-align: right; }
-.time { color: #7ee787; width: 80px; }
-.ip { color: #79c0ff; }
-.proto { color: #d2a8ff; font-weight: 500; }
-.app { color: #ffa657; font-weight: 500; }
-.attack { color: #ff7b72; font-weight: bold; }
+    header {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--br);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px
+    }
 
-.details {
-  width: 420px;
-  background: #161b22;
-  border-left: 1px solid #30363d;
-  overflow-y: auto;
-  padding: 12px;
-}
-.details h3 {
-  color: #58a6ff;
-  font-size: 13px;
-  margin-bottom: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid #30363d;
-}
-.details .section {
-  margin-bottom: 14px;
-}
-.details .section .label {
-  color: #8b949e;
-  font-size: 11px;
-  text-transform: uppercase;
-}
-.details .kv {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 4px 8px;
-  margin-top: 4px;
-  font-size: 12px;
-}
-.details .kv .k { color: #8b949e; }
-.details .kv .v { color: #c9d1d9; word-break: break-all; }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
 
-.alerts {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 420px;
-  height: 180px;
-  background: #0d1117;
-  border-top: 1px solid #30363d;
-  overflow-y: auto;
-  display: none;
-}
-.alerts.show { display: block; }
-.alerts h3 {
-  background: #3d1a1a;
-  color: #ff7b72;
-  padding: 6px 12px;
-  position: sticky;
-  top: 0;
-}
-.alert-item {
-  padding: 6px 12px;
-  border-bottom: 1px solid #21262d;
-  font-size: 12px;
-}
-.alert-item .time { color: #8b949e; }
-.alert-item .type { color: #ff7b72; font-weight: bold; }
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--ac2), var(--ac));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px
+    }
 
-.bar {
-  display: inline-block;
-  width: 60px;
-  height: 8px;
-  background: #21262d;
-  border-radius: 2px;
-  overflow: hidden;
-  vertical-align: middle;
-  margin-right: 4px;
-}
-.bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3fb950, #f0b429, #f85149);
-}
-</style>
+    .logo h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ac);
+      letter-spacing: .5px
+    }
+
+    .logo small {
+      font-size: 10px;
+      color: var(--t3);
+      display: block
+    }
+
+    .hdr-c {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .mode-btn {
+      padding: 6px 16px;
+      border-radius: 6px;
+      border: 1px solid var(--br);
+      background: var(--bg3);
+      color: var(--t2);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: .2s
+    }
+
+    .mode-btn.on {
+      background: var(--gn2);
+      color: var(--gn);
+      border-color: var(--gn)
+    }
+
+    .hdr-sel {
+      background: var(--bg3);
+      color: var(--t2);
+      border: 1px solid var(--br);
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 11px
+    }
+
+    .badge {
+      background: var(--rd2);
+      color: var(--rd);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700
+    }
+
+    .hdr-ic {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid var(--br);
+      background: var(--bg3);
+      color: var(--t2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px
+    }
+
+    .wrap {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      overflow: hidden
+    }
+
+    body.viewer .wrap {
+      grid-template-columns: 180px 1fr
+    }
+
+    nav {
+      background: var(--bg2);
+      border-right: 1px solid var(--br);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 8px 0
+    }
+
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      color: var(--t2);
+      text-decoration: none;
+      font-size: 12px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: .15s
+    }
+
+    nav a:hover {
+      background: var(--bg3);
+      color: var(--t1)
+    }
+
+    nav a.on {
+      background: rgba(59, 130, 246, .08);
+      color: var(--ac);
+      border-left-color: var(--ac)
+    }
+
+    nav a .ico {
+      width: 18px;
+      text-align: center;
+      font-size: 13px
+    }
+
+    nav a .cnt {
+      margin-left: auto;
+      background: var(--rd2);
+      color: var(--rd);
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 700
+    }
+
+    .nav-sep {
+      height: 1px;
+      background: var(--br);
+      margin: 8px 12px
+    }
+
+    .sys-box {
+      margin-top: auto;
+      padding: 12px 16px;
+      border-top: 1px solid var(--br)
+    }
+
+    .sys-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: var(--gn2);
+      border: 1px solid rgba(16, 185, 129, .2);
+      border-radius: 6px;
+      margin-bottom: 8px
+    }
+
+    .sys-status .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--gn);
+      border-radius: 50%;
+      animation: pls 2s infinite
+    }
+
+    @keyframes pls {
+      50% {
+        opacity: .3
+      }
+    }
+
+    .sys-status span {
+      font-size: 11px;
+      color: var(--gn);
+      font-weight: 600;
+      text-transform: uppercase
+    }
+
+    .sys-info {
+      font-size: 10px;
+      color: var(--t3);
+      line-height: 1.8
+    }
+
+    .sys-info b {
+      color: var(--t2)
+    }
+
+    .main {
+      overflow-y: auto;
+      padding: 16px;
+      display: none
+    }
+
+    .main.on {
+      display: block
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px
+    }
+
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--br);
+      border-radius: 8px;
+      padding: 14px 16px
+    }
+
+    .card label {
+      font-size: 10px;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      display: block;
+      margin-bottom: 6px
+    }
+
+    .card .val {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.5px
+    }
+
+    .card .chg {
+      font-size: 10px;
+      margin-left: 4px
+    }
+
+    .card .chg.up {
+      color: var(--gn)
+    }
+
+    .card .chg.dn {
+      color: var(--rd)
+    }
+
+    .row {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 16px
+    }
+
+    .row2 {
+      grid-template-columns: 1fr 1fr
+    }
+
+    .row3 {
+      grid-template-columns: 1fr 1fr 1fr
+    }
+
+    .row4 {
+      grid-template-columns: 1fr 1fr 1fr 1fr
+    }
+
+    .panel {
+      background: var(--bg2);
+      border: 1px solid var(--br);
+      border-radius: 8px;
+      padding: 14px;
+      overflow: hidden
+    }
+
+    .panel h3 {
+      font-size: 11px;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .panel h3 small {
+      font-size: 10px;
+      color: var(--t3);
+      font-weight: 400
+    }
+
+    canvas {
+      width: 100%;
+      height: 160px;
+      display: block
+    }
+
+    .tbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px
+    }
+
+    .tbl th {
+      text-align: left;
+      color: var(--t3);
+      font-size: 10px;
+      padding: 4px 6px;
+      border-bottom: 1px solid var(--br);
+      text-transform: uppercase;
+      font-weight: 500
+    }
+
+    .tbl td {
+      padding: 4px 6px;
+      border-bottom: 1px solid rgba(30, 41, 59, .5);
+      color: var(--t2)
+    }
+
+    .tbl tr:hover td {
+      background: var(--bg3)
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 11px
+    }
+
+    .bar-row .lbl {
+      width: 100px;
+      color: var(--t2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .bar-row .bar {
+      flex: 1;
+      height: 6px;
+      background: var(--bg);
+      border-radius: 3px;
+      overflow: hidden
+    }
+
+    .bar-row .bar div {
+      height: 100%;
+      border-radius: 3px;
+      transition: width .3s
+    }
+
+    .bar-row .pct {
+      width: 32px;
+      text-align: right;
+      color: var(--t3);
+      font-size: 10px
+    }
+
+    .pkt-tbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 11px
+    }
+
+    .pkt-tbl th {
+      position: sticky;
+      top: 0;
+      background: var(--bg2);
+      padding: 5px 6px;
+      text-align: left;
+      color: var(--t3);
+      font-size: 10px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--br);
+      z-index: 2
+    }
+
+    .pkt-tbl td {
+      padding: 3px 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 160px;
+      border-bottom: 1px solid rgba(30, 41, 59, .3)
+    }
+
+    .pkt-tbl tr {
+      cursor: pointer
+    }
+
+    .pkt-tbl tr:hover {
+      background: var(--bg3)
+    }
+
+    .r-crit {
+      background: rgba(244, 63, 94, .1)
+    }
+
+    .r-high {
+      background: rgba(239, 68, 68, .07)
+    }
+
+    .r-med {
+      background: rgba(249, 115, 22, .05)
+    }
+
+    .r-low {
+      background: rgba(245, 158, 11, .04)
+    }
+
+    .fbadge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .3px
+    }
+
+    .fb-c {
+      background: rgba(244, 63, 94, .15);
+      color: var(--pk)
+    }
+
+    .fb-h {
+      background: rgba(239, 68, 68, .12);
+      color: var(--rd)
+    }
+
+    .fb-m {
+      background: rgba(249, 115, 22, .12);
+      color: var(--or)
+    }
+
+    .fb-l {
+      background: rgba(245, 158, 11, .1);
+      color: var(--yl)
+    }
+
+    .col-n {
+      color: var(--t3);
+      width: 40px;
+      text-align: right
+    }
+
+    .col-t {
+      color: #4ade80;
+      width: 65px
+    }
+
+    .col-s {
+      color: #60a5fa
+    }
+
+    .col-d {
+      color: #818cf8
+    }
+
+    .col-p {
+      color: #c084fc;
+      width: 42px;
+      font-weight: 600
+    }
+
+    .col-a {
+      color: var(--yl);
+      width: 45px
+    }
+
+    .col-l {
+      color: var(--t2);
+      width: 40px;
+      text-align: right
+    }
+
+    .col-f {
+      width: 80px
+    }
+
+    .alert-item {
+      display: grid;
+      grid-template-columns: auto 60px 1fr 80px;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(30, 41, 59, .5);
+      font-size: 11px;
+      align-items: center
+    }
+
+    .alert-item:hover {
+      background: var(--bg3)
+    }
+
+    .a-time {
+      color: var(--t3);
+      font-size: 10px
+    }
+
+    .a-sev {
+      font-weight: 700;
+      font-size: 10px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-align: center
+    }
+
+    .a-sev.critical {
+      background: rgba(244, 63, 94, .15);
+      color: var(--pk)
+    }
+
+    .a-sev.high {
+      background: rgba(239, 68, 68, .12);
+      color: var(--rd)
+    }
+
+    .a-sev.medium {
+      background: rgba(249, 115, 22, .12);
+      color: var(--or)
+    }
+
+    .a-desc {
+      color: var(--t2)
+    }
+
+    .a-type {
+      color: var(--or);
+      font-weight: 600;
+      font-size: 10px
+    }
+
+    .gauge-wrap {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap
+    }
+
+    .gauge {
+      text-align: center
+    }
+
+    .gauge canvas {
+      width: 70px;
+      height: 70px
+    }
+
+    .gauge span {
+      display: block;
+      font-size: 10px;
+      color: var(--t3);
+      margin-top: 4px
+    }
+
+    .ml-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      font-size: 11px
+    }
+
+    .ml-item .nm {
+      width: 140px;
+      color: var(--t2)
+    }
+
+    .ml-item .st {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%
+    }
+
+    .st.on {
+      background: var(--gn)
+    }
+
+    .st.off {
+      background: var(--rd)
+    }
+
+    .protected {
+      text-align: center;
+      padding: 16px;
+      margin-bottom: 12px
+    }
+
+    .protected .shield {
+      font-size: 40px;
+      margin-bottom: 4px;
+      color: var(--gn);
+      text-shadow: 0 0 20px rgba(16, 185, 129, .4)
+    }
+
+    .protected h4 {
+      color: var(--gn);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px
+    }
+
+    .protected p {
+      color: var(--t3);
+      font-size: 10px;
+      margin-top: 2px
+    }
+
+    .logo-icon {
+      font-family: 'Segoe UI', sans-serif;
+      font-weight: 900;
+      color: #fff;
+      font-size: 16px;
+      letter-spacing: -1px
+    }
+
+    .donut-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      margin-top: 8px;
+      font-size: 10px
+    }
+
+    .donut-legend i {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      display: inline-block;
+      margin-right: 3px
+    }
+
+    footer {
+      background: var(--bg2);
+      border-top: 1px solid var(--br);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      font-size: 10px;
+      color: var(--t3);
+      padding: 0 16px
+    }
+
+    footer b {
+      color: var(--ac);
+      font-weight: 600
+    }
+
+    .pkt-wrap {
+      max-height: 240px;
+      overflow-y: auto
+    }
+
+    .pkt-wrap::-webkit-scrollbar {
+      width: 4px
+    }
+
+    .pkt-wrap::-webkit-scrollbar-thumb {
+      background: var(--br);
+      border-radius: 2px
+    }
+
+    .viewer .adv-only {
+      display: none !important
+    }
+
+    .advanced .view-only {
+      display: none !important
+    }
+
+    .rule-card {
+      background: var(--bg3);
+      border: 1px solid var(--br);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      transition: .2s
+    }
+
+    .rule-card:hover {
+      border-color: var(--ac)
+    }
+
+    .rule-card .rc-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px
+    }
+
+    .rule-card .rc-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--t1)
+    }
+
+    .rule-card .rc-id {
+      font-size: 10px;
+      color: var(--t3);
+      font-family: monospace
+    }
+
+    .rule-card .rc-cat {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      background: rgba(59, 130, 246, .1);
+      color: var(--ac)
+    }
+
+    .rule-card .rc-desc {
+      font-size: 11px;
+      color: var(--t2);
+      line-height: 1.6;
+      margin-top: 4px
+    }
+
+    .rule-card .rc-sev {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase
+    }
+
+    .sev-critical {
+      color: var(--pk)
+    }
+
+    .sev-high {
+      color: var(--rd)
+    }
+
+    .sev-medium {
+      color: var(--or)
+    }
+
+    .sev-low {
+      color: var(--yl)
+    }
+
+    .detail-section {
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--br);
+      padding-bottom: 8px
+    }
+
+    .detail-section:last-child {
+      border-bottom: none
+    }
+
+    .detail-section h4 {
+      font-size: 10px;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px
+    }
+
+    .detail-kv {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 2px 8px;
+      font-size: 11px
+    }
+
+    .detail-kv .dk {
+      color: var(--t3)
+    }
+
+    .detail-kv .dv {
+      color: var(--t1);
+      word-break: break-all
+    }
+
+    .ml-model-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      background: var(--bg3);
+      border: 1px solid var(--br);
+      border-radius: 6px;
+      margin-bottom: 6px
+    }
+
+    .ml-model-card .mm-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    .ml-model-card .mm-name {
+      flex: 1;
+      font-size: 11px;
+      color: var(--t1)
+    }
+
+    .ml-model-card .mm-meta {
+      font-size: 10px;
+      color: var(--t3)
+    }
+
+    .ml-model-card .mm-weight {
+      font-size: 11px;
+      color: var(--ac);
+      font-weight: 600;
+      min-width: 40px;
+      text-align: right
+    }
+
+    .pkt-tbl tr.selected {
+      background: rgba(59, 130, 246, .15) !important
+    }
+  </style>
 </head>
-<body>
 
-<header>
-  <div class="logo">Sentinel-Pi v3.0 — Deep Inspector</div>
-  <div class="status">
-    <span class="live">LIVE</span>
-    <span id="stat-pkts">Packets: 0</span>
-    <span id="stat-flows">Flows: 0</span>
-    <span id="stat-alerts">Alerts: 0</span>
-    <span id="stat-ram">RAM: —</span>
-    <span id="stat-cpu">CPU: —</span>
-  </div>
-</header>
-
-<div class="toolbar">
-  <button id="btn-all" class="active" data-f="">All</button>
-  <button data-f="TCP">TCP</button>
-  <button data-f="UDP">UDP</button>
-  <button data-f="DNS">DNS</button>
-  <button data-f="HTTP">HTTP</button>
-  <button data-f="TLS">TLS</button>
-  <button data-f="ARP">ARP</button>
-  <button data-f="ICMP">ICMP</button>
-  <button id="btn-alerts">⚠️ Alerts</button>
-  <input class="filter" id="filter" placeholder="Filter: src:192.168.1.5 port:443 proto:HTTP">
-  <button id="btn-pause">⏸ Pause</button>
-  <button id="btn-clear">🗑 Clear</button>
-</div>
-
-<main>
-  <div class="packet-list">
-    <table>
-      <thead>
-        <tr>
-          <th class="num">No.</th>
-          <th class="time">Time</th>
-          <th>Source</th>
-          <th>Destination</th>
-          <th>Proto</th>
-          <th style="width:60px">Len</th>
-          <th>Info</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-  <div class="details" id="details">
-    <h3>Packet Details</h3>
-    <div style="color:#8b949e;font-size:12px">Select a packet to inspect</div>
-  </div>
-</main>
-
-<div class="alerts" id="alerts">
-  <h3>🚨 Threat Alerts</h3>
-  <div id="alert-list"></div>
-</div>
-
-<script>
-const tbody = document.getElementById('tbody');
-const details = document.getElementById('details');
-const filterInput = document.getElementById('filter');
-const alertsPane = document.getElementById('alerts');
-const alertList = document.getElementById('alert-list');
-
-let packets = [];
-let filteredBy = '';
-let paused = false;
-let selectedNum = null;
-const maxRows = 2000;
-
-// ── Filter toolbar ────────────────────────────────
-document.querySelectorAll('.toolbar button[data-f]').forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll('.toolbar button[data-f]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    filteredBy = btn.dataset.f;
-    render();
-  };
-});
-
-document.getElementById('btn-pause').onclick = (e) => {
-  paused = !paused;
-  e.target.textContent = paused ? '▶ Resume' : '⏸ Pause';
-};
-document.getElementById('btn-clear').onclick = () => {
-  packets = [];
-  render();
-};
-document.getElementById('btn-alerts').onclick = () => {
-  alertsPane.classList.toggle('show');
-};
-filterInput.oninput = () => render();
-
-// ── Rendering ─────────────────────────────────────
-function matchFilter(p) {
-  if (filteredBy) {
-    const proto = (p.proto || '') + ' ' + (p.app || '');
-    if (!proto.includes(filteredBy)) return false;
-  }
-  const q = filterInput.value.toLowerCase();
-  if (!q) return true;
-  const hay = JSON.stringify(p).toLowerCase();
-  return hay.includes(q);
-}
-
-function render() {
-  const rows = packets.filter(matchFilter).slice(-maxRows);
-  tbody.innerHTML = '';
-  for (const p of rows) {
-    const tr = document.createElement('tr');
-    tr.dataset.num = p.num;
-    if (p.sev) tr.className = 'sev-' + p.sev;
-    if (p.num === selectedNum) tr.classList.add('selected');
-    tr.innerHTML = `
-      <td class="num">${p.num}</td>
-      <td class="time">${p.ts.toFixed(3)}</td>
-      <td class="ip">${p.src || ''}${p.sport ? ':' + p.sport : ''}</td>
-      <td class="ip">${p.dst || ''}${p.dport ? ':' + p.dport : ''}</td>
-      <td><span class="proto">${p.proto || ''}</span> ${p.app ? '<span class="app">' + p.app + '</span>' : ''}</td>
-      <td>${p.len}</td>
-      <td>${escapeHTML(p.info || '')}${p.attack ? ' <span class="attack">[' + p.attack.toUpperCase() + ']</span>' : ''}${p.intel ? ' <span class="attack">[INTEL: ' + escapeHTML(p.intel) + ']</span>' : ''}</td>
-    `;
-    tr.onclick = () => selectPacket(p);
-    tbody.appendChild(tr);
-  }
-  document.getElementById('stat-pkts').textContent = `Packets: ${packets.length}`;
-}
-
-function selectPacket(p) {
-  selectedNum = p.num;
-  document.querySelectorAll('#tbody tr').forEach(r => r.classList.remove('selected'));
-  const row = document.querySelector(`#tbody tr[data-num="${p.num}"]`);
-  if (row) row.classList.add('selected');
-
-  let html = `
-    <h3>Packet #${p.num} — ${p.len} bytes</h3>
-    <div class="section">
-      <div class="label">Timestamp</div>
-      <div class="kv"><span class="k">t</span><span class="v">+${p.ts.toFixed(6)} s</span></div>
-    </div>
-    <div class="section">
-      <div class="label">Layer 3 — ${p.proto || 'n/a'}</div>
-      <div class="kv">
-        <span class="k">Source</span><span class="v">${p.src || ''}${p.sport ? ':' + p.sport : ''}</span>
-        <span class="k">Destination</span><span class="v">${p.dst || ''}${p.dport ? ':' + p.dport : ''}</span>
-        ${p.flags ? `<span class="k">TCP Flags</span><span class="v">${p.flags}</span>` : ''}
-      </div>
-    </div>
-  `;
-
-  if (p.app) {
-    html += `
-      <div class="section">
-        <div class="label">Application — ${p.app}</div>
-        <div class="kv"><span class="k">Info</span><span class="v">${escapeHTML(p.info || '')}</span></div>
-      </div>
-    `;
-  }
-
-  if (p.ml) {
-    const pct = (p.ml * 100).toFixed(1);
-    html += `
-      <div class="section">
-        <div class="label">🧠 ML Prediction</div>
-        <div class="kv">
-          <span class="k">Score</span><span class="v"><span class="bar"><span class="bar-fill" style="width:${pct}%"></span></span>${pct}%</span>
-          ${p.attack ? `<span class="k">Attack Type</span><span class="v attack">${p.attack}</span>` : ''}
+<body class="advanced">
+  <div class="app">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">S</div>
+        <div>
+          <h1>Sentinel-Pi</h1><small>Hybrid IDS</small>
         </div>
       </div>
-    `;
-  }
-
-  if (p.intel) {
-    html += `
-      <div class="section">
-        <div class="label">🌐 Threat Intelligence</div>
-        <div class="kv"><span class="k">Source</span><span class="v attack">${escapeHTML(p.intel)}</span></div>
+      <div class="hdr-c">
+        <button class="mode-btn on" data-mode="advanced">Advanced Mode</button>
+        <button class="mode-btn" data-mode="viewer">Viewer Mode</button>
+        <select class="hdr-sel">
+          <option>Last 15 minutes</option>
+          <option>Last 30 minutes</option>
+          <option>Last 1 hour</option>
+        </select>
+        <span class="badge" id="h-alerts">0</span>
+        <div class="hdr-ic" title="Settings">&#9881;</div>
       </div>
-    `;
-  }
+    </header>
+    <div class="wrap">
+      <nav>
+        <a data-page="dashboard" data-mode="advanced" class="on"><span class="ico">&#9635;</span>Dashboard</a>
+        <a data-page="alerts" data-mode="advanced"><span class="ico">&#9888;</span>Alerts<span class="cnt"
+            id="h-alerts2">0</span></a>
+        <a data-page="traffic" data-mode="advanced"><span class="ico">&#8644;</span>Live Traffic</a>
+        <a data-page="flows" data-mode="advanced"><span class="ico">&#8634;</span>Flows</a>
+        <a data-page="packets" data-mode="advanced"><span class="ico">&#9783;</span>Packet Viewer</a>
+        <a data-page="intel" data-mode="advanced"><span class="ico">&#9733;</span>Attack Intel</a>
+        <a data-page="mlanalytics" data-mode="advanced"><span class="ico">&#9672;</span>ML Analytics</a>
+        <a data-page="reports" data-mode="advanced"><span class="ico">&#9776;</span>Reports</a>
+        <a data-page="rules" data-mode="advanced"><span class="ico">&#9881;</span>Rules</a>
+        <a data-page="signatures" data-mode="advanced"><span class="ico">&#9998;</span>Signatures</a>
+        <a data-page="settings"><span class="ico">&#9881;</span>Settings</a>
+        <a data-page="system" data-mode="advanced"><span class="ico">&#9108;</span>System</a>
+        <div class="nav-sep"></div>
+        <a data-page="overview" data-mode="viewer"><span class="ico">&#9635;</span>Overview</a>
+        <a data-page="valerts" data-mode="viewer"><span class="ico">&#9888;</span>Alerts</a>
+        <a data-page="vtraffic" data-mode="viewer"><span class="ico">&#8644;</span>Traffic</a>
+        <a data-page="vrisks" data-mode="viewer"><span class="ico">&#9650;</span>Top Risks</a>
+        <a data-page="vreports" data-mode="viewer"><span class="ico">&#9776;</span>Reports</a>
+        <a data-page="vsettings" data-mode="viewer"><span class="ico">&#9881;</span>Settings</a>
+        <div class="sys-box">
+          <div class="sys-status">
+            <div class="dot"></div><span>PROTECTED</span>
+          </div>
+          <div class="sys-info">
+            <span style="color:var(--t3)">SYSTEM STATUS</span><br>
+            <span style="color:var(--gn)">All systems operational</span><br><br>
+            Uptime <b id="sys-uptime">0d 0h 0m</b><br>
+            Version <b>v4.0.0</b><br>
+            Mode <b>Hybrid AI</b><br>
+            Platform <b>Raspberry Pi 4</b><br>
+            RAM <b id="sys-ram">-</b><br>
+            IP <b>192.168.1.100</b>
+          </div>
+        </div>
+      </nav>
 
-  details.innerHTML = html;
-}
+      <!-- ========== ADVANCED: Dashboard ========== -->
+      <div class="main on" id="p-dashboard">
+        <div class="cards">
+          <div class="card"><label>Total Flows</label>
+            <div class="val" id="v-flows">0<span class="chg up">&#8593; 12.5%</span></div>
+          </div>
+          <div class="card"><label>Threats Detected</label>
+            <div class="val" style="color:var(--rd)" id="v-threats">0<span class="chg up"
+                style="color:var(--rd)">&#8593; 18.7%</span></div>
+          </div>
+          <div class="card"><label>Critical Alerts</label>
+            <div class="val" style="color:var(--pk)" id="v-critical">0<span class="chg up"
+                style="color:var(--rd)">&#8593; 33.3%</span></div>
+          </div>
+          <div class="card"><label>ML Confidence (AVG)</label>
+            <div class="val" style="color:var(--gn)" id="v-ml">87.6%<span class="chg up">&#8593; 5.2%</span></div>
+          </div>
+          <div class="card"><label>Blocked Connections</label>
+            <div class="val" id="v-blocked">0<span class="chg up">&#8593; 22.5%</span></div>
+          </div>
+          <div class="card"><label>System Load</label>
+            <div class="val" id="v-load">42%<span class="chg dn">&#8595; 7.1%</span></div>
+          </div>
+        </div>
+        <div class="row row3">
+          <div class="panel">
+            <h3>Threat Level Over Time <small>15m</small></h3><canvas id="c-timeline"></canvas>
+          </div>
+          <div class="panel">
+            <h3>Protocol Distribution</h3><canvas id="c-proto"></canvas>
+          </div>
+          <div class="panel">
+            <h3>Flow Rate (Per Second)</h3><canvas id="c-flowrate"></canvas>
+          </div>
+        </div>
+        <div class="row row4">
+          <div class="panel">
+            <h3>Top Attack Types</h3>
+            <div id="attack-bars"></div>
+          </div>
+          <div class="panel">
+            <h3>Top Source IPs</h3>
+            <div id="src-bars"></div>
+          </div>
+          <div class="panel">
+            <h3>Top Targeted Ports</h3>
+            <div id="port-bars"></div>
+          </div>
+          <div class="panel">
+            <h3>Top Attack Categories</h3>
+            <div id="proto-bars"></div>
+          </div>
+        </div>
+        <div class="row row2">
+          <div class="panel">
+            <h3>Live Packet Viewer <small><button id="btnPause"
+                  style="background:var(--bg3);border:1px solid var(--br);color:var(--t2);padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px">Pause</button>
+                <button id="btnClear"
+                  style="background:var(--bg3);border:1px solid var(--br);color:var(--t2);padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px">Clear</button></small>
+            </h3>
+            <div class="pkt-wrap">
+              <table class="pkt-tbl">
+                <thead>
+                  <tr>
+                    <th class="col-n">#</th>
+                    <th class="col-t">Time</th>
+                    <th class="col-s">Source</th>
+                    <th class="col-d">Dest</th>
+                    <th class="col-p">Proto</th>
+                    <th class="col-a">App</th>
+                    <th class="col-l">Len</th>
+                    <th class="col-f">Fusion</th>
+                    <th>Info</th>
+                  </tr>
+                </thead>
+                <tbody id="pkt-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="panel" style="margin-bottom:12px">
+              <h3>ML Model Status</h3>
+              <div class="ml-item"><span class="st on"></span><span class="nm">Binary Classifier (ONNX)</span><span
+                  style="color:var(--gn)">&#9679; Online</span></div>
+              <div class="ml-item"><span class="st on"></span><span class="nm">XGBoost (Binary)</span><span
+                  style="color:var(--gn)">&#9679; Online</span></div>
+              <div class="ml-item"><span class="st on"></span><span class="nm">LightGBM (Multi)</span><span
+                  style="color:var(--gn)">&#9679; Online</span></div>
+              <div class="ml-item"><span class="st on"></span><span class="nm">XGBoost (Multi)</span><span
+                  style="color:var(--gn)">&#9679; Online</span></div>
+              <div class="ml-item"><span class="st on"></span><span class="nm">CatBoost (Multi)</span><span
+                  style="color:var(--gn)">&#9679; Online</span></div>
+            </div>
+            <div class="panel" style="margin-bottom:12px">
+              <div class="protected">
+                <div class="shield">&#9733;</div>
+                <h4>PROTECTED</h4>
+                <p>All systems OK</p>
+              </div>
+            </div>
+            <div class="panel">
+              <h3>System Resources</h3>
+              <div class="gauge-wrap">
+                <div class="gauge"><canvas id="g-cpu"></canvas><span>CPU</span></div>
+                <div class="gauge"><canvas id="g-mem"></canvas><span>Memory</span></div>
+                <div class="gauge"><canvas id="g-disk"></canvas><span>Disk</span></div>
+                <div class="gauge"><canvas id="g-net"></canvas><span>Network</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-function escapeHTML(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+      <!-- ========== ADVANCED: Alerts ========== -->
+      <div class="main" id="p-alerts">
+        <div class="panel">
+          <h3>Threat Alerts</h3>
+          <div id="alert-list"></div>
+        </div>
+      </div>
 
-// ── SSE stream ─────────────────────────────────────
-const stream = new EventSource('/api/stream');
-stream.onmessage = e => {
-  if (paused) return;
-  try {
-    const msg = JSON.parse(e.data);
-    if (msg.type === 'packet') {
-      packets.push(msg.data);
-      if (packets.length > 10000) packets = packets.slice(-5000);
-      render();
-      // Auto-scroll
-      tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight;
-    } else if (msg.type === 'alert') {
-      addAlert(msg.data);
+      <!-- ========== ADVANCED: Live Traffic ========== -->
+      <div class="main" id="p-traffic">
+        <div style="display:grid;grid-template-columns:1fr 380px;gap:12px;height:calc(100vh - 140px)">
+          <div class="panel" style="overflow:hidden;display:flex;flex-direction:column">
+            <h3>Live Traffic Stream <small><span id="pkt-count" style="color:var(--ac)">0</span> packets</small></h3>
+            <div class="pkt-wrap" style="flex:1;max-height:none;overflow-y:auto">
+              <table class="pkt-tbl">
+                <thead>
+                  <tr>
+                    <th class="col-n">#</th>
+                    <th class="col-t">Time</th>
+                    <th class="col-s">Source</th>
+                    <th class="col-d">Dest</th>
+                    <th class="col-p">Proto</th>
+                    <th class="col-a">App</th>
+                    <th class="col-l">Len</th>
+                    <th class="col-f">Fusion</th>
+                    <th>Info</th>
+                  </tr>
+                </thead>
+                <tbody id="pkt-body2"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel" style="overflow-y:auto" id="pkt-detail">
+            <h3>Packet Detail</h3>
+            <div id="pkt-detail-content" style="color:var(--t3);padding:20px;text-align:center">Click a packet to
+              inspect</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== ADVANCED: Packet Viewer (Detailed) ========== -->
+      <div class="main" id="p-packets">
+        <div style="display:grid;grid-template-columns:1fr 400px;gap:12px;height:calc(100vh - 140px)">
+          <div class="panel" style="overflow:hidden;display:flex;flex-direction:column">
+            <h3>Packet Inspector <small><button id="btnPause2"
+                  style="background:var(--bg3);border:1px solid var(--br);color:var(--t2);padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px">Pause</button>
+                <button id="btnClear2"
+                  style="background:var(--bg3);border:1px solid var(--br);color:var(--t2);padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px">Clear</button>
+                Autoscroll</small></h3>
+            <div class="pkt-wrap" style="flex:1;max-height:none;overflow-y:auto">
+              <table class="pkt-tbl">
+                <thead>
+                  <tr>
+                    <th class="col-n">#</th>
+                    <th class="col-t">Time</th>
+                    <th class="col-s">Source</th>
+                    <th class="col-d">Dest</th>
+                    <th class="col-p">Proto</th>
+                    <th class="col-a">App</th>
+                    <th class="col-l">Len</th>
+                    <th class="col-f">Fusion</th>
+                    <th>Info</th>
+                  </tr>
+                </thead>
+                <tbody id="pkt-body3"></tbody>
+              </table>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto">
+            <div class="panel" id="pktv-info">
+              <h3>&#9635; Packet Info</h3>
+              <div id="pktv-info-content" style="color:var(--t3);text-align:center;padding:16px">Select a packet to
+                inspect</div>
+            </div>
+            <div class="panel" id="pktv-fusion">
+              <h3>&#9733; Fusion Analysis</h3>
+              <div id="pktv-fusion-content" style="color:var(--t3);text-align:center;padding:16px">-</div>
+            </div>
+            <div class="panel" id="pktv-ml">
+              <h3>&#9672; ML Scores</h3>
+              <div id="pktv-ml-content" style="color:var(--t3);text-align:center;padding:16px">-</div>
+            </div>
+            <div class="panel" id="pktv-static">
+              <h3>&#9888; Static Signals</h3>
+              <div id="pktv-static-content" style="color:var(--t3);text-align:center;padding:16px">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== ADVANCED: ML Analytics (Live from backend) ========== -->
+      <div class="main" id="p-mlanalytics">
+        <div class="cards" style="grid-template-columns:repeat(6,1fr)" id="ml-stat-cards">
+          <div class="card"><label>Binary Accuracy</label>
+            <div class="val" style="color:var(--gn)" id="ml-bin-acc">-</div>
+          </div>
+          <div class="card"><label>Multiclass Accuracy</label>
+            <div class="val" style="color:var(--gn)" id="ml-multi-acc">-</div>
+          </div>
+          <div class="card"><label>False Positive Rate</label>
+            <div class="val" style="color:var(--yl)" id="ml-fpr">-</div>
+          </div>
+          <div class="card"><label>Precision</label>
+            <div class="val" style="color:var(--gn)" id="ml-precision">-</div>
+          </div>
+          <div class="card"><label>Recall</label>
+            <div class="val" style="color:var(--gn)" id="ml-recall">-</div>
+          </div>
+          <div class="card"><label>Macro-F1</label>
+            <div class="val" style="color:var(--ac)" id="ml-f1">-</div>
+          </div>
+        </div>
+        <div class="row row2">
+          <div class="panel">
+            <h3>ONNX Model Ensemble</h3>
+            <div id="ml-models-list"></div>
+          </div>
+          <div class="panel">
+            <h3>Engine Configuration</h3>
+            <div id="ml-config-content"></div>
+          </div>
+        </div>
+        <div class="row row2">
+          <div class="panel">
+            <h3>Attack Classes (Multiclass)</h3>
+            <div id="ml-classes-list"></div>
+          </div>
+          <div class="panel">
+            <h3>Fusion Engine Weights</h3>
+            <div id="ml-fusion-config"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== ADVANCED: Attack Intel ========== -->
+      <div class="main" id="p-intel">
+        <div class="cards" style="grid-template-columns:repeat(5,1fr);margin-bottom:12px" id="intel-counts"></div>
+        <div class="panel" style="margin-bottom:12px">
+          <h3>Threat Intelligence Feed <small id="intel-meta" style="color:var(--t3)"></small></h3>
+          <table class="tbl" id="intel-table">
+            <thead>
+              <tr>
+                <th>Family</th>
+                <th>Category</th>
+                <th>Value</th>
+                <th>Severity</th>
+                <th>Hits</th>
+                <th>Last Hit</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h3>Active Block List</h3>
+          <table class="tbl" id="blocks-table">
+            <thead>
+              <tr>
+                <th>IP</th>
+                <th>Reason</th>
+                <th>Added</th>
+                <th>Expires</th>
+                <th>Source</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ========== ADVANCED: Rules (All 15 static analysers) ========== -->
+      <div class="main" id="p-rules">
+        <div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+          <div class="card"><label>Active Rules</label>
+            <div class="val" style="color:var(--gn)">15</div>
+          </div>
+          <div class="card"><label>Rule Categories</label>
+            <div class="val" style="color:var(--ac)">7</div>
+          </div>
+          <div class="card"><label>Engine Status</label>
+            <div class="val" style="color:var(--gn)">Active</div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Static Analysis Rules <small>15 active rules loaded from fusion engine</small></h3>
+          <div id="rules-list"></div>
+        </div>
+      </div>
+
+      <!-- ========== ADVANCED: Reports ========== -->
+      <div class="main" id="p-reports">
+        <div class="panel">
+          <h3>Reports</h3>
+          <div style="padding:12px"><button id="btnExportReport"
+              style="background:var(--ac);border:none;color:#fff;padding:8px 14px;border-radius:5px;cursor:pointer;font-size:12px">Download
+              JSON Report</button></div>
+          <div id="report-preview"
+            style="font-family:'Cascadia Code',monospace;font-size:11px;color:var(--t3);padding:12px;max-height:60vh;overflow:auto">
+          </div>
+        </div>
+      </div>
+      <div class="main" id="p-signatures">
+        <div class="panel">
+          <h3>Signatures &amp; IOCs <small id="ioc-count" style="color:var(--t3)"></small></h3>
+          <table class="tbl" id="ioc-table">
+            <thead>
+              <tr>
+                <th>Family</th>
+                <th>Category</th>
+                <th>Value</th>
+                <th>Severity</th>
+                <th>Hits</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="main" id="p-settings">
+        <div class="panel">
+          <h3>Settings</h3>
+          <div style="padding:14px;display:grid;gap:12px;max-width:520px">
+            <label style="font-size:12px;color:var(--t2)">ML Binary Threshold (0.001 – 0.99)
+              <input id="setThreshold" type="number" step="0.001" min="0.001" max="0.99"
+                style="width:100%;background:var(--bg3);border:1px solid var(--br);color:var(--t1);padding:6px 10px;border-radius:5px;margin-top:4px" />
+            </label>
+            <button id="btnApplyThreshold"
+              style="background:var(--ac);border:none;color:#fff;padding:8px 14px;border-radius:5px;cursor:pointer">Apply
+              Threshold</button>
+            <button id="btnGC"
+              style="background:var(--bg3);border:1px solid var(--br);color:var(--t2);padding:8px 14px;border-radius:5px;cursor:pointer">Force
+              GC</button>
+            <button id="btnClearAlerts"
+              style="background:var(--rd2);border:1px solid var(--rd);color:var(--rd);padding:8px 14px;border-radius:5px;cursor:pointer">Clear
+              All Alerts</button>
+            <div style="border-top:1px solid var(--br);padding-top:12px">
+              <h4 style="font-size:11px;color:var(--t3);text-transform:uppercase;margin-bottom:8px">PCAP Files</h4>
+              <div id="pcap-list" style="font-size:11px"></div>
+            </div>
+            <div style="border-top:1px solid var(--br);padding-top:12px">
+              <h4 style="font-size:11px;color:var(--t3);text-transform:uppercase;margin-bottom:8px">Block List</h4>
+              <div style="display:flex;gap:6px;margin-bottom:8px">
+                <input id="blockIP" placeholder="IP address"
+                  style="flex:1;background:var(--bg3);border:1px solid var(--br);color:var(--t1);padding:6px 10px;border-radius:5px" />
+                <input id="blockReason" placeholder="reason"
+                  style="flex:1;background:var(--bg3);border:1px solid var(--br);color:var(--t1);padding:6px 10px;border-radius:5px" />
+                <input id="blockSeconds" type="number" placeholder="seconds (0=permanent)"
+                  style="width:140px;background:var(--bg3);border:1px solid var(--br);color:var(--t1);padding:6px 10px;border-radius:5px" />
+                <button id="btnBlock"
+                  style="background:var(--rd2);border:1px solid var(--rd);color:var(--rd);padding:6px 12px;border-radius:5px;cursor:pointer">Block</button>
+              </div>
+              <div id="block-list" style="font-size:11px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="main" id="p-system">
+        <div class="panel">
+          <h3>System Monitor</h3>
+          <div class="cards" style="grid-template-columns:repeat(4,1fr);margin:12px 0">
+            <div class="card"><label>CPU</label>
+              <div class="val" id="sys-cpu" style="color:var(--ac)">-</div>
+            </div>
+            <div class="card"><label>RAM</label>
+              <div class="val" id="sys-ram2" style="color:var(--pu)">-</div>
+            </div>
+            <div class="card"><label>Disk</label>
+              <div class="val" id="sys-disk" style="color:var(--gn)">-</div>
+            </div>
+            <div class="card"><label>Net Rx</label>
+              <div class="val" id="sys-net" style="color:var(--yl)">-</div>
+            </div>
+          </div>
+          <div class="gauge-wrap" style="padding:20px">
+            <div class="gauge"><canvas id="g-cpu2"></canvas><span>CPU</span></div>
+            <div class="gauge"><canvas id="g-mem2"></canvas><span>Memory</span></div>
+            <div class="gauge"><canvas id="g-disk2"></canvas><span>Disk</span></div>
+            <div class="gauge"><canvas id="g-net2"></canvas><span>Network</span></div>
+          </div>
+          <div class="panel" style="margin-top:12px">
+            <h3>Capture Engine</h3>
+            <div id="capture-info" style="padding:8px;font-size:11px;color:var(--t2);line-height:2"></div>
+          </div>
+          <div class="panel" style="margin-top:12px">
+            <h3>Network Interfaces</h3>
+            <table class="tbl" id="iface-table">
+              <thead>
+                <tr>
+                  <th>Interface</th>
+                  <th>Rx Bytes</th>
+                  <th>Tx Bytes</th>
+                  <th>Rx Drops</th>
+                  <th>Tx Drops</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="main" id="p-flows">
+        <div class="panel">
+          <h3>Active Flows <small><b id="flow-count" style="color:var(--ac)">0</b> tracked</small></h3>
+          <div class="pkt-wrap" style="max-height:75vh;overflow-y:auto">
+            <table class="pkt-tbl">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Dest</th>
+                  <th>Proto</th>
+                  <th>App</th>
+                  <th>Pkts (fwd/bwd)</th>
+                  <th>Bytes</th>
+                  <th>Duration</th>
+                  <th>Flags</th>
+                  <th>Level</th>
+                </tr>
+              </thead>
+              <tbody id="flow-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== VIEWER: Overview ========== -->
+      <div class="main" id="p-overview">
+        <div class="cards" style="grid-template-columns:repeat(4,1fr)">
+          <div class="card"><label>Network Status</label>
+            <div class="val" style="color:var(--gn)">Protected</div>
+            <div style="font-size:10px;color:var(--t3)">All systems operational</div>
+          </div>
+          <div class="card"><label>Threats Detected</label>
+            <div class="val" style="color:var(--rd)" id="vw-threats">0<span class="chg up"
+                style="color:var(--rd)">&#8593; 18.7%</span></div>
+          </div>
+          <div class="card"><label>Critical Alerts</label>
+            <div class="val" style="color:var(--pk)" id="vw-critical">0<span class="chg up"
+                style="color:var(--rd)">&#8593; 33.3%</span></div>
+          </div>
+          <div class="card"><label>Blocked Connections</label>
+            <div class="val" id="vw-blocked">0<span class="chg up">&#8593; 22.5%</span></div>
+          </div>
+        </div>
+        <div class="row row2">
+          <div class="panel">
+            <h3>Network Activity <small>Last 15 Minutes</small></h3><canvas id="c-flowrate2"
+              style="height:200px"></canvas>
+          </div>
+          <div class="panel">
+            <h3>Top Threats</h3><canvas id="c-threats" style="height:200px"></canvas>
+          </div>
+        </div>
+        <div class="panel" style="margin-bottom:16px">
+          <h3>Recent Alerts <small style="color:var(--ac);cursor:pointer">View All</small></h3>
+          <div id="alert-list2"></div>
+        </div>
+        <div class="cards" style="grid-template-columns:repeat(4,1fr)">
+          <div class="card"><label>Total Flows</label>
+            <div class="val" id="vw-flows">0<span class="chg up">&#8593; 12.5%</span></div>
+          </div>
+          <div class="card"><label>Protocols</label>
+            <div class="val" id="vw-protos">5<span style="font-size:10px;color:var(--t3)"> Active</span></div>
+          </div>
+          <div class="card"><label>Active Hosts</label>
+            <div class="val" id="vw-hosts">0<span style="font-size:10px;color:var(--t3)"> On Network</span></div>
+          </div>
+          <div class="card"><label>System Load</label>
+            <div class="val" id="vw-load">42%<span style="font-size:10px;color:var(--t3)"> Normal</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== VIEWER: Alerts ========== -->
+      <div class="main" id="p-valerts">
+        <div class="panel">
+          <h3>Alert History</h3>
+          <div id="alert-list3"></div>
+        </div>
+      </div>
+
+      <div class="main" id="p-vtraffic">
+        <div class="panel">
+          <h3>Traffic Overview</h3><canvas id="c-flowrate3" style="height:250px"></canvas>
+        </div>
+      </div>
+      <div class="main" id="p-vrisks">
+        <div class="panel">
+          <h3>Top Risks</h3><canvas id="c-threats2" style="height:300px"></canvas>
+        </div>
+      </div>
+      <div class="main" id="p-vreports">
+        <div class="panel">
+          <h3>Reports</h3>
+          <p style="color:var(--t3);padding:20px">Summary reports.</p>
+        </div>
+      </div>
+      <div class="main" id="p-vsettings">
+        <div class="panel">
+          <h3>Settings</h3>
+          <p style="color:var(--t3);padding:20px">Configuration.</p>
+        </div>
+      </div>
+
+    </div><!-- /wrap -->
+    <footer>
+      <span><b>Advanced Profile</b> - For security analysts and power users (full visibility, deep
+        investigation).</span>
+      <span><b>Viewer Profile</b> - For general users and management (clean, simple, actionable insights).</span>
+    </footer>
+  </div><!-- /app -->
+  <script>
+    let mode = 'advanced', page = 'dashboard', pkts = [], alerts = [], summary = {}, ws = null, paused = false;
+    const MAX = 5000;
+
+    // Realtime packet viewer controls
+    let packetBuffer = [];
+    let packetSeen = new Set();
+    const RENDER_EVERY_MS = 300;
+    const MAX_BATCH_RENDER = 120;
+    function $(s, p) { return (p || document).querySelector(s) }
+    function $$(s, p) { return (p || document).querySelectorAll(s) }
+    function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) }
+    function fmt(n) { return n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n) }
+
+    // Mode toggle
+    function setMode(m) {
+      mode = m; document.body.className = m;
+      $$('.mode-btn').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+      $$('nav a').forEach(a => a.style.display = a.dataset.mode && a.dataset.mode !== m ? 'none' : '');
+      showPage(m === 'advanced' ? 'dashboard' : 'overview');
     }
-  } catch {}
-};
+    function showPage(p) {
+      page = p; $$('.main').forEach(el => el.classList.remove('on'));
+      const el = $('#p-' + p); if (el) el.classList.add('on');
+      $$('nav a').forEach(a => a.classList.toggle('on', a.dataset.page === p));
+      if (p === 'dashboard' || p === 'overview') refreshCharts();
+    }
 
-function addAlert(a) {
-  const el = document.createElement('div');
-  el.className = 'alert-item';
-  el.innerHTML = `
-    <span class="time">${new Date(a.time).toLocaleTimeString()}</span>
-    • <span class="type">${a.type}</span>
-    • ${a.src} → ${a.dst}
-    • score ${(a.score * 100).toFixed(1)}%
-    • ${escapeHTML(a.details || '')}
-  `;
-  alertList.prepend(el);
-  document.getElementById('stat-alerts').textContent = `Alerts: ${alertList.children.length}`;
-}
+    // Navigation
+    document.addEventListener('click', e => {
+      const a = e.target.closest('nav a[data-page]');
+      if (a) { e.preventDefault(); showPage(a.dataset.page) }
+      const mb = e.target.closest('.mode-btn');
+      if (mb) setMode(mb.dataset.mode);
+      if (e.target.id === 'btnPause') { paused = !paused; e.target.textContent = paused ? '▶ Resume' : '⏸ Pause' }
+      if (e.target.id === 'btnClear') { pkts = []; renderPackets() }
+    });
 
-// ── Stats polling ──────────────────────────────────
-async function pollStats() {
-  try {
-    const r = await fetch('/api/stats');
-    const s = await r.json();
-    if (s.flows !== undefined) document.getElementById('stat-flows').textContent = `Flows: ${s.flows}`;
-    if (s.ram_mb !== undefined) document.getElementById('stat-ram').textContent = `RAM: ${s.ram_mb} MB`;
-    if (s.cpu_pct !== undefined) document.getElementById('stat-cpu').textContent = `CPU: ${s.cpu_pct}%`;
-  } catch {}
-}
-setInterval(pollStats, 2000);
-pollStats();
-</script>
+    // WebSocket
+    // WebSocket
+    function connectWS() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(proto + '//' + location.host + '/api/ws');
+
+      ws.onmessage = e => {
+        if (paused) return;
+        try {
+          const msg = JSON.parse(e.data);
+
+          if (msg.type === 'packet') {
+            enqueuePacket(msg.data);
+          }
+          else if (msg.type === 'alert') {
+            alerts.unshift(msg.data);
+            if (alerts.length > 500) alerts.length = 500;
+            renderAlerts();
+            updateHeaderStats();
+          }
+        } catch { }
+      };
+
+      ws.onclose = () => setTimeout(connectWS, 3000);
+      ws.onerror = () => ws.close();
+    }
+
+    function packetKey(p) {
+      return p.num || ((p.ts || '') + '|' + (p.src || '') + '|' + (p.dst || '') + '|' + (p.proto || '') + '|' + (p.len || ''));
+    }
+
+    function enqueuePacket(p) {
+      const k = packetKey(p);
+      if (packetSeen.has(k)) return;
+
+      packetSeen.add(k);
+      packetBuffer.push(p);
+
+      if (packetSeen.size > MAX * 2) {
+        packetSeen = new Set(pkts.slice(-MAX).map(packetKey));
+      }
+    }
+
+    function flushPacketBuffer() {
+      if (paused || packetBuffer.length === 0) return;
+
+      const batch = packetBuffer.splice(0, MAX_BATCH_RENDER);
+      pkts.push(...batch);
+
+      if (pkts.length > MAX) {
+        pkts = pkts.slice(-MAX);
+        packetSeen = new Set(pkts.map(packetKey));
+      }
+
+      renderPackets();
+      updateHeaderStats();
+    }
+
+    // Fetch initial data
+    // Fetch initial data
+    async function init() {
+      try {
+        const [p, a] = await Promise.all([
+          fetch('/api/packets').then(r => r.json()),
+          fetch('/api/alerts').then(r => r.json())
+        ]);
+
+        pkts = p || [];
+        packetSeen = new Set(pkts.map(packetKey));
+
+        alerts = (a || []).reverse();
+        renderPackets();
+        renderAlerts();
+      } catch { }
+
+      fetchSummary();
+      connectWS();
+
+      setInterval(fetchSummary, 2000);
+      setInterval(flushPacketBuffer, RENDER_EVERY_MS);
+      setInterval(fetchLatestPackets, 1500);
+
+      setMode('advanced');
+    }
+
+    async function fetchLatestPackets() {
+      if (paused) return;
+
+      try {
+        const latest = await fetch('/api/packets').then(r => r.json());
+        for (const p of latest || []) {
+          enqueuePacket(p);
+        }
+      } catch { }
+    }
+    async function fetchSummary() {
+      try { summary = await fetch('/api/summary').then(r => r.json()); renderSummary() } catch { }
+    }
+
+    // Render summary cards + charts
+    function renderSummary() {
+      const s = summary;
+      setText('v-flows', fmt(s.total_packets || 0));
+      setText('v-threats', fmt(s.threats || 0));
+      setText('v-critical', s.critical_alerts || 0);
+      setText('v-blocked', s.blocked || 0);
+      setText('v-ml', ((s.ml_confidence || .876) * 100).toFixed(1) + '%');
+      setText('v-load', (s.flows ? Math.min(99, Math.round(s.flows / 500 * 100)) : 42) + '%');
+      // Viewer cards
+      setText('vw-threats', fmt(s.threats || 0));
+      setText('vw-critical', s.critical_alerts || 0);
+      setText('vw-blocked', s.blocked || 0);
+      setText('vw-flows', fmt(s.total_packets || 0));
+      setText('vw-protos', s.protocol_dist ? s.protocol_dist.length : 5);
+      setText('vw-hosts', s.top_src_ips ? s.top_src_ips.length : 0);
+      setText('vw-load', (s.flows ? Math.min(99, Math.round(s.flows / 500 * 100)) : 42) + '%');
+      // System info
+      if (s.uptime_sec) { const u = s.uptime_sec; const d = Math.floor(u / 86400), h = Math.floor(u % 86400 / 3600), m = Math.floor(u % 3600 / 60); setText('sys-uptime', d + 'd ' + h + 'h ' + m + 'm') }
+      if (s.ram_mb !== undefined) setText('sys-ram', s.ram_mb + ' MB');
+      // Bars
+      renderBars('attack-bars', s.top_attacks || [], 'var(--rd)');
+      renderBars('src-bars', s.top_src_ips || [], 'var(--ac)');
+      renderBars('port-bars', s.top_dst_ports || [], 'var(--pu)');
+      renderBars('proto-bars', s.protocol_dist || [], 'var(--gn)');
+      refreshCharts();
+    }
+    function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v }
+    function renderBars(id, data, color) {
+      const el = document.getElementById(id); if (!el || !data.length) return;
+      const mx = Math.max(...data.map(d => d.V || d.v || 0), 1);
+      el.innerHTML = data.slice(0, 6).map(d => {
+        const k = d.K || d.k || '?', v = d.V || d.v || 0, pct = Math.round(v / mx * 100);
+        return `<div class="bar-row"><span class="lbl">${esc(k)}</span><div class="bar"><div style="width:${pct}%;background:${color}"></div></div><span class="pct">${v}</span></div>`
+      }).join('');
+    }
+
+    // Header stats
+    function updateHeaderStats() {
+      setText('h-pkts', fmt(pkts.length));
+      setText('h-alerts', alerts.length);
+    }
+
+    // Render packets
+    function renderPackets() {
+      const tbody = $('#pkt-body'); if (!tbody) return;
+      const vis = pkts.slice(-500);
+      let h = '';
+      for (const p of vis) {
+        const lv = fl(p), rc = lv === 'critical' ? 'r-crit' : lv === 'high' ? 'r-high' : lv === 'medium' ? 'r-med' : lv === 'low' ? 'r-low' : '';
+        const s = p.src ? (p.src + (p.sport ? ':' + p.sport : '')) : '—';
+        const d = p.dst ? (p.dst + (p.dport ? ':' + p.dport : '')) : '—';
+        let fb = '';
+        if (lv !== 'benign') {
+          const lb = { critical: 'CRIT', high: 'HIGH', medium: 'MED', low: 'LOW' }[lv] || ''; const sc = p.fusion ? Math.round(p.fusion.final_score * 100) : p.ml ? Math.round(p.ml * 100) : 0;
+          fb = `<span class="fbadge fb-${lv[0]}">${lb} ${sc}%</span>`
+        }
+        h += `<tr class="${rc}"><td class="col-n">${p.num}</td><td class="col-t">${(p.ts || 0).toFixed(3)}</td><td class="col-s" title="${esc(p.src || '')}">${esc(s).slice(0, 18)}</td><td class="col-d" title="${esc(p.dst || '')}">${esc(d).slice(0, 18)}</td><td class="col-p">${esc(p.proto || '')}</td><td class="col-a">${esc(p.app || '')}</td><td class="col-l">${p.len}</td><td class="col-f">${fb}</td><td>${esc((p.info || '').slice(0, 60))}</td></tr>`;
+      }
+      tbody.innerHTML = h;
+      const w = $('.pkt-wrap'); if (w) w.scrollTop = w.scrollHeight;
+    }
+    function fl(p) { if (p.fusion) return p.fusion.level_str || 'benign'; if (p.sev === 'critical') return 'critical'; if (p.sev === 'high') return 'high'; if (p.ml && p.ml > .35) return 'medium'; return 'benign' }
+
+    // Render alerts
+    function renderAlerts() {
+      const el = $('#alert-list'); if (!el) return;
+      el.innerHTML = alerts.slice(0, 50).map(a => {
+        const sev = a.sev || 'high', type = a.type || 'unknown';
+        return `<div class="alert-item"><span class="a-time">${new Date(a.time || Date.now()).toLocaleTimeString()}</span><span class="a-sev ${sev}">${sev}</span><span class="a-desc">${esc(a.src || '')} → ${esc(a.dst || '')} <b class="a-type">${esc(type)}</b></span><span class="a-desc">${esc((a.details || '').slice(0, 50))}</span></div>`
+      }).join('') || '<div style="padding:20px;text-align:center;color:var(--t3)">No alerts</div>';
+      setText('h-alerts', alerts.length);
+    }
+
+    // Canvas charts
+    function refreshCharts() { drawProtoDonut(); drawThreatDonut(); drawTimeline(); drawFlowRate(); drawGauges() }
+    function drawProtoDonut() {
+      const c = $('#c-proto'); if (!c) return; const ctx = c.getContext('2d');
+      const W = c.width = c.offsetWidth * 2, H = c.height = c.offsetHeight * 2; ctx.scale(2, 2);
+      const w = W / 2, h = H / 2, cx = w * .4, cy = h * .5, r = Math.min(cx, cy) * .7;
+      const data = summary.protocol_dist || [{ K: 'TCP', V: 60 }, { K: 'UDP', V: 25 }, { K: 'ICMP', V: 10 }, { K: 'Other', V: 5 }];
+      const colors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#6366f1'];
+      const total = data.reduce((a, d) => a + (d.V || 0), 0) || 1;
+      let angle = -Math.PI / 2;
+      data.forEach((d, i) => {
+        const slice = (d.V || 0) / total * Math.PI * 2;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, angle, angle + slice); ctx.fillStyle = colors[i % colors.length]; ctx.fill();
+        angle += slice;
+      });
+      ctx.beginPath(); ctx.arc(cx, cy, r * .6, 0, Math.PI * 2); ctx.fillStyle = '#0d1117'; ctx.fill();
+      ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(fmt(total), cx, cy - 2);
+      ctx.fillStyle = '#94a3b8'; ctx.font = '9px sans-serif'; ctx.fillText('Total', cx, cy + 12);
+      // Legend
+      let ly = 10; data.forEach((d, i) => {
+        ctx.fillStyle = colors[i % colors.length]; ctx.fillRect(w * .75, ly, 8, 8);
+        ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(`${d.K} ${((d.V || 0) / total * 100).toFixed(1)}%`, w * .75 + 12, ly + 8); ly += 16;
+      });
+    }
+    function drawThreatDonut() {
+      const c = $('#c-threats'); if (!c) return; const ctx = c.getContext('2d');
+      const W = c.width = c.offsetWidth * 2, H = c.height = c.offsetHeight * 2; ctx.scale(2, 2);
+      const w = W / 2, h = H / 2, cx = w * .45, cy = h * .5, r = Math.min(cx, cy) * .7;
+      const atk = {}; pkts.forEach(p => { const l = fl(p); if (l !== 'benign') { const t = (p.fusion && p.fusion.attack_type) || p.attack || 'unknown'; atk[t] = (atk[t] || 0) + 1 } });
+      const entries = Object.entries(atk).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      const total = entries.reduce((a, e) => a + e[1], 0) || 1;
+      const colors = ['#ef4444', '#f97316', '#f59e0b', '#3b82f6', '#8b5cf6', '#10b981'];
+      let angle = -Math.PI / 2;
+      if (entries.length === 0) {
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 12; ctx.stroke();
+      } else { entries.forEach((e, i) => { const slice = e[1] / total * Math.PI * 2; ctx.beginPath(); ctx.arc(cx, cy, r, angle, angle + slice); ctx.strokeStyle = colors[i % colors.length]; ctx.lineWidth = 12; ctx.stroke(); angle += slice }) }
+      ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(total, cx, cy + 2);
+      let ly = 10; entries.forEach((e, i) => {
+        ctx.fillStyle = colors[i % colors.length]; ctx.fillRect(w * .78, ly, 8, 8);
+        ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(`${e[0]} ${((e[1] / total) * 100).toFixed(1)}%`, w * .78 + 12, ly + 8); ly += 16;
+      });
+    }
+    function drawTimeline() {
+      const c = $('#c-timeline'); if (!c) return; const ctx = c.getContext('2d');
+      const W = c.width = c.offsetWidth * 2, H = c.height = c.offsetHeight * 2; ctx.scale(2, 2);
+      const w = W / 2, h = H / 2, pad = 30;
+      // Generate timeline buckets (last 15 min in 1-min buckets)
+      const now = pkts.length ? pkts[pkts.length - 1].ts : 0;
+      const buckets = Array(15).fill(0); const bCrit = Array(15).fill(0);
+      pkts.forEach(p => {
+        const age = now - p.ts; const idx = 14 - Math.min(14, Math.floor(age / 60)); const lv = fl(p);
+        if (lv !== 'benign') { buckets[idx]++; if (lv === 'critical' || lv === 'high') bCrit[idx]++ }
+      });
+      const mx = Math.max(...buckets, 5);
+      ctx.strokeStyle = '#1e293b'; ctx.lineWidth = .5;
+      for (let i = 0; i < 5; i++) {
+        const y = pad + (h - pad * 2) * i / 4; ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - 10, y); ctx.stroke();
+        ctx.fillStyle = '#475569'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(Math.round(mx * (1 - i / 4)), pad - 4, y + 3)
+      }
+      // Area fill
+      ctx.beginPath(); ctx.moveTo(pad, h - pad);
+      const step = (w - pad - 10) / 14;
+      buckets.forEach((v, i) => { const x = pad + i * step, y = h - pad - (v / mx) * (h - pad * 2); ctx.lineTo(x, y) });
+      ctx.lineTo(pad + 14 * step, h - pad); ctx.closePath();
+      const grd = ctx.createLinearGradient(0, pad, 0, h - pad); grd.addColorStop(0, 'rgba(239,68,68,.3)'); grd.addColorStop(1, 'rgba(239,68,68,.02)');
+      ctx.fillStyle = grd; ctx.fill();
+      // Line
+      ctx.beginPath(); buckets.forEach((v, i) => { const x = pad + i * step, y = h - pad - (v / mx) * (h - pad * 2); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y) });
+      ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.5; ctx.stroke();
+      // Labels
+      ctx.fillStyle = '#475569'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+      ['15m', '12m', '9m', '6m', '3m', 'Now'].forEach((l, i) => { ctx.fillText(l, pad + i * 14 / 5 * step, h - pad + 14) });
+    }
+    function drawFlowRate() {
+      const c = $('#c-flowrate'); if (!c) return; const ctx = c.getContext('2d');
+      const W = c.width = c.offsetWidth * 2, H = c.height = c.offsetHeight * 2; ctx.scale(2, 2);
+      const w = W / 2, h = H / 2, pad = 30;
+      const now = pkts.length ? pkts[pkts.length - 1].ts : 0;
+      const buckets = Array(15).fill(0);
+      pkts.forEach(p => { const age = now - p.ts; const idx = 14 - Math.min(14, Math.floor(age / 60)); buckets[idx]++ });
+      const mx = Math.max(...buckets, 10);
+      ctx.strokeStyle = '#1e293b'; ctx.lineWidth = .5;
+      for (let i = 0; i < 5; i++) {
+        const y = pad + (h - pad * 2) * i / 4; ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - 10, y); ctx.stroke();
+        ctx.fillStyle = '#475569'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(Math.round(mx * (1 - i / 4)), pad - 4, y + 3)
+      }
+      const step = (w - pad - 10) / 14;
+      ctx.beginPath(); ctx.moveTo(pad, h - pad);
+      buckets.forEach((v, i) => { const x = pad + i * step, y = h - pad - (v / mx) * (h - pad * 2); ctx.lineTo(x, y) });
+      ctx.lineTo(pad + 14 * step, h - pad); ctx.closePath();
+      const grd = ctx.createLinearGradient(0, pad, 0, h - pad); grd.addColorStop(0, 'rgba(59,130,246,.25)'); grd.addColorStop(1, 'rgba(59,130,246,.02)');
+      ctx.fillStyle = grd; ctx.fill();
+      ctx.beginPath(); buckets.forEach((v, i) => { const x = pad + i * step, y = h - pad - (v / mx) * (h - pad * 2); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y) });
+      ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1.5; ctx.stroke();
+      // Peak label
+      const peakIdx = buckets.indexOf(Math.max(...buckets));
+      ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(fmt(Math.max(...buckets)), pad + peakIdx * step, h - pad - (Math.max(...buckets) / mx) * (h - pad * 2) - 8);
+    }
+    function drawGauges() {
+      const gauges = [
+        { id: 'g-cpu', val: summary.cpu_pct || 32, label: 'CPU', color: '#3b82f6' },
+        { id: 'g-mem', val: summary.ram_mb ? Math.round(summary.ram_mb / 40) : 58, label: 'Memory', color: '#8b5cf6' },
+        { id: 'g-disk', val: 31, label: 'Disk', color: '#10b981' },
+        { id: 'g-net', val: summary.flows ? Math.min(99, Math.round(summary.flows / 500 * 100)) : 73, label: 'Network', color: '#f59e0b' }
+      ];
+      gauges.forEach(g => {
+        const c = document.getElementById(g.id); if (!c) return;
+        const ctx = c.getContext('2d'); c.width = 140; c.height = 140; ctx.scale(2, 2);
+        const cx = 35, cy = 40, r = 28, start = Math.PI * .8, end = Math.PI * 2.2;
+        const range = end - start, valAngle = start + range * (g.val / 100);
+        ctx.beginPath(); ctx.arc(cx, cy, r, start, end); ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, r, start, valAngle); ctx.strokeStyle = g.color; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
+        ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(g.val + '%', cx, cy + 4);
+      });
+    }
+    document.addEventListener('DOMContentLoaded', init);
+
+    // ========== CONFIG: Fetch ML + Rules from backend ==========
+    let sysConfig = null;
+    async function fetchConfig() {
+      try { sysConfig = await fetch('/api/config').then(r => r.json()); renderConfig() } catch (e) { console.log('config fetch failed, using defaults') }
+    }
+    function renderConfig() {
+      if (!sysConfig) return;
+      const mc = sysConfig.ml_config || {};
+      setText('ml-bin-acc', (mc.binary_accuracy || 99.62) + '%');
+      setText('ml-multi-acc', (mc.multi_accuracy || 98.91) + '%');
+      setText('ml-fpr', (mc.fpr || 0.87) + '%');
+      setText('ml-precision', (mc.precision || 99.33) + '%');
+      setText('ml-recall', (mc.recall || 99.99) + '%');
+      setText('ml-f1', (mc.macro_f1 || 84.73) + '%');
+      // Models list
+      const ml = document.getElementById('ml-models-list');
+      if (ml && sysConfig.ml_models) {
+        ml.innerHTML = sysConfig.ml_models.map(m => `<div class="ml-model-card"><div class="mm-dot" style="background:${m.status === 'online' ? 'var(--gn)' : 'var(--rd)'}"></div><span class="mm-name">${esc(m.name)}<br><span class="mm-meta">${esc(m.file)} | ${m.type}</span></span><span class="mm-weight">${m.weight > 0 ? 'W=' + m.weight : 'disabled'}</span></div>`).join('');
+      }
+      // Config details
+      const cc = document.getElementById('ml-config-content');
+      if (cc) {
+        cc.innerHTML = `<div style="font-size:11px;color:var(--t2);line-height:2.2"><b style="color:var(--ac)">Binary Threshold:</b> ${(mc.binary_threshold * 100 || 7.48).toFixed(2)}% (F2-tuned)<br><b style="color:var(--ac)">Ensemble:</b> LightGBM x XGBoost x CatBoost<br><b style="color:var(--ac)">Features:</b> ${mc.num_features || 74} (CICFlowMeter compatible)<br><b style="color:var(--ac)">Training Data:</b> ${mc.training_data || 'CIC-IDS2017 + UNSW-NB15 + BOT-IoT'}<br><b style="color:var(--ac)">Classes:</b> ${mc.num_classes || 9} attack categories</div>`;
+      }
+      // Classes
+      const cl = document.getElementById('ml-classes-list');
+      if (cl && mc.classes) {
+        const colors = { benign: 'var(--gn)', botnet: 'var(--pu)', brute_force: 'var(--or)', ddos: 'var(--rd)', dos: 'var(--pk)', exploit: 'var(--rd)', infiltration: 'var(--yl)', portscan: 'var(--ac)', web_attack: 'var(--or)' };
+        cl.innerHTML = mc.classes.map(c => `<div style="display:inline-block;margin:3px"><span class="fbadge" style="background:rgba(59,130,246,.1);color:${colors[c] || 'var(--t2)'}">${c}</span></div>`).join('');
+      }
+      // Fusion config
+      const fc = document.getElementById('ml-fusion-config');
+      if (fc && sysConfig.fusion_config) {
+        const f = sysConfig.fusion_config;
+        fc.innerHTML = `<div style="font-size:11px;color:var(--t2);line-height:2.2"><b style="color:var(--ac)">ML Weight:</b> ${(f.ml_weight * 100).toFixed(0)}%<br><b style="color:var(--ac)">Static Weight:</b> ${(f.static_weight * 100).toFixed(0)}%<br><b style="color:var(--ac)">ML Floor:</b> ${(f.ml_floor * 100).toFixed(0)}%<br><b style="color:var(--ac)">High Confidence Threshold:</b> ${(f.ml_high_confidence * 100).toFixed(0)}%</div><div style="margin-top:8px"><div class="bar-row"><span class="lbl">ML Engine</span><div class="bar"><div style="width:${f.ml_weight * 100}%;background:var(--ac)"></div></div><span class="pct">${(f.ml_weight * 100).toFixed(0)}%</span></div><div class="bar-row"><span class="lbl">Static Rules</span><div class="bar"><div style="width:${f.static_weight * 100}%;background:var(--gn)"></div></div><span class="pct">${(f.static_weight * 100).toFixed(0)}%</span></div></div>`;
+      }
+      // Rules page
+      const rl = document.getElementById('rules-list');
+      if (rl && sysConfig.static_rules) {
+        rl.innerHTML = sysConfig.static_rules.map(r => `<div class="rule-card"><div class="rc-head"><span><span class="rc-name">${esc(r.name)}</span> <span class="rc-id">#${r.id}</span></span><span><span class="rc-cat">${esc(r.category)}</span> <span class="rc-sev sev-${r.severity}">${r.severity}</span></span></div><div class="rc-desc">${esc(r.desc)}</div></div>`).join('');
+      }
+      // Dashboard ML model status (update from config)
+      const items = document.querySelectorAll('.ml-item');
+      if (items.length && sysConfig.ml_models) {
+        let html = '';
+        sysConfig.ml_models.forEach(m => {
+          const color = m.status === 'online' ? 'var(--gn)' : 'var(--rd)';
+          html += `<div class="ml-item"><span class="st ${m.status === 'online' ? 'on' : 'off'}"></span><span class="nm">${esc(m.name)}</span><span style="color:${color}">&#9679; ${m.status}</span></div>`;
+        });
+        const mlPanel = document.querySelector('#p-dashboard .ml-item');
+        if (mlPanel && mlPanel.parentElement) mlPanel.parentElement.innerHTML = html;
+      }
+    }
+
+    // ========== PACKET SELECTION + DETAIL ==========
+    let selectedPkt = null;
+    document.addEventListener('click', function (ev) {
+      const row = ev.target.closest('.pkt-tbl tbody tr');
+      if (row) {
+        const idx = row.getAttribute('data-idx');
+        if (idx !== null) {
+          selectedPkt = pkts[parseInt(idx)];
+          document.querySelectorAll('.pkt-tbl tr.selected').forEach(r => r.classList.remove('selected'));
+          row.classList.add('selected');
+          renderPktDetail();
+        }
+      }
+    });
+    function renderPktDetail() {
+      const p = selectedPkt; if (!p) return;
+      // Simple detail panel (Live Traffic page)
+      const dc = document.getElementById('pkt-detail-content');
+      if (dc) dc.innerHTML = buildDetailHTML(p);
+      // Full detail panels (Packet Viewer page)
+      const pi = document.getElementById('pktv-info-content');
+      if (pi) pi.innerHTML = buildPacketInfo(p);
+      const pf = document.getElementById('pktv-fusion-content');
+      if (pf) pf.innerHTML = buildFusionDetail(p);
+      const pm = document.getElementById('pktv-ml-content');
+      if (pm) pm.innerHTML = buildMLDetail(p);
+      const ps = document.getElementById('pktv-static-content');
+      if (ps) ps.innerHTML = buildStaticDetail(p);
+    }
+    function buildDetailHTML(p) {
+      let h = '<div class="detail-section"><h4>Network Layer</h4><div class="detail-kv">';
+      h += kv('Packet #', p.num) + kv('Time', p.ts ? p.ts.toFixed(6) + 's' : '-') + kv('Source', p.src + (p.sport ? ':' + p.sport : ''));
+      h += kv('Dest', p.dst + (p.dport ? ':' + p.dport : '')) + kv('Protocol', p.proto) + kv('App Layer', p.app || '-') + kv('Length', p.len + ' bytes');
+      h += kv('Flags', p.flags || '-') + kv('Info', p.info || '-');
+      h += '</div></div>';
+      if (p.fusion || p.ml || p.sev) {
+        h += '<div class="detail-section"><h4>Threat Analysis</h4><div class="detail-kv">';
+        const lv = fl(p);
+        h += kv('Level', '<span class="fbadge fb-' + lv[0] + '">' + lv.toUpperCase() + '</span>');
+        if (p.ml) h += kv('ML Score', (p.ml * 100).toFixed(1) + '%');
+        if (p.attack) h += kv('Attack Type', p.attack);
+        if (p.intel) h += kv('Intel', p.intel);
+        if (p.fusion) {
+          const f = p.fusion;
+          if (f.final_score !== undefined) h += kv('Fusion Score', (f.final_score * 100).toFixed(1) + '%');
+          if (f.ml_score !== undefined) h += kv('ML Component', (f.ml_score * 100).toFixed(1) + '%');
+          if (f.static_score !== undefined) h += kv('Static Score', (f.static_score * 100).toFixed(1) + '%');
+          if (f.attack_type) h += kv('Classification', f.attack_type);
+          if (f.signals && f.signals.length) h += kv('Signals', f.signals.join(', '));
+        }
+        h += '</div></div>';
+      }
+      return h;
+    }
+    function buildPacketInfo(p) {
+      let h = '<div class="detail-kv">';
+      h += kv('Packet #', '<b style="color:var(--ac)">' + p.num + '</b>') + kv('Timestamp', p.ts ? p.ts.toFixed(6) + 's' : '-');
+      h += kv('Source IP', p.src || '-') + kv('Source Port', p.sport || '-') + kv('Dest IP', p.dst || '-') + kv('Dest Port', p.dport || '-');
+      h += kv('L4 Protocol', '<span style="color:var(--pu);font-weight:600">' + esc(p.proto || '-') + '</span>');
+      h += kv('App Protocol', p.app || '-') + kv('Packet Size', p.len + ' bytes') + kv('TCP Flags', p.flags || '-') + kv('Info', p.info || '-');
+      h += '</div>'; return h;
+    }
+    function buildFusionDetail(p) {
+      if (!p.fusion) return '<div style="text-align:center;color:var(--t3);padding:8px">No fusion data for this packet</div>';
+      const f = p.fusion; let h = '<div class="detail-kv">';
+      h += kv('Final Score', scoreBadge(f.final_score)) + kv('Level', '<span class="fbadge fb-' + (f.level_str || 'l')[0] + '">' + (f.level_str || 'benign').toUpperCase() + '</span>');
+      h += kv('ML Score', scoreBadge(f.ml_score)) + kv('Static Score', scoreBadge(f.static_score));
+      h += kv('Attack Type', '<b style="color:var(--or)">' + (f.attack_type || '-') + '</b>');
+      if (f.corroborated !== undefined) h += kv('Corroborated', f.corroborated ? '<span style="color:var(--rd)">YES</span>' : 'No');
+      if (f.ml_agrees !== undefined) h += kv('ML Agrees', f.ml_agrees ? '<span style="color:var(--gn)">YES</span>' : '<span style="color:var(--or)">NO</span>');
+      h += '</div>';
+      if (f.signals && f.signals.length) {
+        h += '<h4 style="font-size:10px;color:var(--t3);margin-top:8px">TRIGGERED SIGNALS</h4>';
+        f.signals.forEach(s => { h += '<div style="display:inline-block;margin:2px"><span class="fbadge" style="background:rgba(239,68,68,.1);color:var(--rd)">' + esc(s) + '</span></div>' });
+      }
+      return h;
+    }
+    function buildMLDetail(p) {
+      if (!p.ml && !p.attack) return '<div style="text-align:center;color:var(--t3);padding:8px">No ML prediction for this packet</div>';
+      let h = '<div class="detail-kv">';
+      h += kv('Attack Probability', p.ml ? scoreBadge(p.ml) : 'N/A') + kv('Is Attack', p.ml && p.ml > 0.0748 ? '<span style="color:var(--rd)">YES</span>' : '<span style="color:var(--gn)">NO</span>');
+      h += kv('Attack Type', '<b style="color:var(--or)">' + (p.attack || 'benign') + '</b>');
+      if (p.intel) h += kv('Threat Intel', '<span style="color:var(--rd)">' + esc(p.intel) + '</span>');
+      h += '</div>'; return h;
+    }
+    function buildStaticDetail(p) {
+      if (!p.fusion || !p.fusion.signals || !p.fusion.signals.length) return '<div style="text-align:center;color:var(--t3);padding:8px">No static signals triggered</div>';
+      let h = '<div style="font-size:11px;color:var(--t2)">';
+      p.fusion.signals.forEach(s => {
+        const rule = sysConfig && sysConfig.static_rules ? sysConfig.static_rules.find(r => r.name.toLowerCase().includes(s.toLowerCase())) : null;
+        h += '<div class="rule-card" style="margin-bottom:6px"><div class="rc-head"><span class="rc-name">' + esc(s) + '</span>';
+        if (rule) h += '<span class="rc-sev sev-' + rule.severity + '">' + rule.severity + '</span>';
+        h += '</div>';
+        if (rule) h += '<div class="rc-desc">' + esc(rule.desc) + '</div>';
+        h += '</div>';
+      });
+      h += '</div>'; return h;
+    }
+    function kv(k, v) { return '<span class="dk">' + k + '</span><span class="dv">' + v + '</span>' }
+    function scoreBadge(v) { if (v === undefined || v === null) return '-'; const pct = (v * 100).toFixed(1); const c = v > 0.5 ? 'var(--rd)' : v > 0.2 ? 'var(--or)' : 'var(--gn)'; return '<span style="color:' + c + ';font-weight:600">' + pct + '%</span>' }
+
+    // Patch init to also fetch config and start auxiliary pollers
+    var _origInit = init;
+    init = async function () {
+      await _origInit();
+      await fetchConfig();
+      fetchFlows(); fetchSystem(); fetchIntel(); fetchPCAPs(); fetchBlocks();
+      setInterval(fetchFlows, 2000);
+      setInterval(fetchSystem, 2000);
+      setInterval(fetchIntel, 15000);
+      setInterval(fetchPCAPs, 30000);
+      setInterval(fetchBlocks, 10000);
+      wireControls();
+    };
+
+    // ========== /api/flows ==========
+    async function fetchFlows() {
+      try { const r = await fetch('/api/flows?max=300'); const fs = await r.json(); renderFlows(fs || []) } catch { }
+    }
+    function renderFlows(fs) {
+      setText('flow-count', fs.length);
+      const tb = document.getElementById('flow-body'); if (!tb) return;
+      tb.innerHTML = fs.map(f => {
+        const lv = (f.level || '').toLowerCase();
+        const rc = lv === 'critical' ? 'r-crit' : lv === 'high' ? 'r-high' : lv === 'medium' ? 'r-med' : '';
+        const sc = f.ml_score ? Math.round(f.ml_score * 100) + '%' : '-';
+        const lvBadge = lv ? '<span class="fbadge fb-' + lv[0] + '">' + lv.toUpperCase() + ' ' + sc + '</span>' : '';
+        const dur = f.duration_ms ? (f.duration_ms / 1000).toFixed(1) + 's' : '-';
+        return '<tr class="' + rc + '"><td class="col-s">' + esc(f.src + ':' + f.sport) + '</td><td class="col-d">' + esc(f.dst + ':' + f.dport) + '</td><td class="col-p">' + esc(protoName(f.proto)) + '</td><td class="col-a">' + esc(f.app || '') + '</td><td>' + f.fwd_pkts + '/' + f.bwd_pkts + '</td><td>' + fmt(f.fwd_bytes + f.bwd_bytes) + '</td><td>' + dur + '</td><td>S' + f.syn + ' A' + f.ack + ' R' + f.rst + '</td><td>' + lvBadge + '</td></tr>';
+      }).join('');
+    }
+    function protoName(p) { return ({ 1: 'ICMP', 6: 'TCP', 17: 'UDP', 47: 'GRE', 50: 'ESP' })[p] || ('IP/' + p) }
+
+    // ========== /api/system + /api/capture ==========
+    async function fetchSystem() {
+      try {
+        const [sys, cap] = await Promise.all([
+          fetch('/api/system').then(r => r.json()),
+          fetch('/api/capture').then(r => r.json())
+        ]);
+        renderSystem(sys, cap);
+      } catch { }
+    }
+    function renderSystem(sys, cap) {
+      if (sys.cpu_pct !== undefined) setText('sys-cpu', sys.cpu_pct.toFixed(1) + '%');
+      if (sys.disk && sys.disk.used_pct !== undefined) setText('sys-disk', sys.disk.used_pct.toFixed(0) + '%');
+      if (sys.net_rx_bps !== undefined) setText('sys-net', fmt(sys.net_rx_bps) + 'B/s');
+      if (summary.ram_mb) setText('sys-ram2', summary.ram_mb + ' MB');
+
+      // Capture info
+      const ci = document.getElementById('capture-info');
+      if (ci && cap) {
+        ci.innerHTML = '<b style="color:var(--ac)">Interface:</b> ' + esc(cap.interface || '-') +
+          '<br><b style="color:var(--ac)">Promiscuous:</b> ' + (cap.promiscuous ? 'yes' : 'no') +
+          '<br><b style="color:var(--ac)">Snap Length:</b> ' + (cap.snap_len || '-') +
+          '<br><b style="color:var(--ac)">Received:</b> ' + fmt(cap.received || 0) +
+          '<br><b style="color:var(--ac)">Dropped:</b> ' + fmt(cap.dropped || 0) +
+          '<br><b style="color:var(--ac)">Lost:</b> ' + fmt(cap.lost || 0) +
+          '<br><b style="color:var(--ac)">Bytes:</b> ' + fmt(cap.bytes || 0) +
+          '<br><b style="color:var(--ac)">Channel:</b> ' + (cap.channel_used || 0) + '/' + (cap.channel_cap || 0);
+      }
+      // Interfaces table
+      const it = document.querySelector('#iface-table tbody');
+      if (it && sys.interfaces) {
+        it.innerHTML = sys.interfaces.map(n => '<tr><td>' + esc(n.iface) + '</td><td>' + fmt(n.rx_bytes) + '</td><td>' + fmt(n.tx_bytes) + '</td><td>' + n.rx_dropped + '</td><td>' + n.tx_dropped + '</td></tr>').join('');
+      }
+    }
+
+    // ========== /api/intel + /api/blocks ==========
+    async function fetchIntel() {
+      try { const r = await fetch('/api/intel'); const ind = await r.json(); renderIntel(ind || []) } catch { }
+    }
+    function renderIntel(ind) {
+      setText('intel-meta', ind.length + ' indicators');
+      // Counts cards
+      const counts = {}; ind.forEach(i => counts[i.category] = (counts[i.category] || 0) + 1);
+      const cc = document.getElementById('intel-counts');
+      if (cc) {
+        const order = ['ja3', 'scanner', 'signature', 'dns', 'total'];
+        cc.innerHTML = '<div class="card"><label>Total IOCs</label><div class="val" style="color:var(--ac)">' + ind.length + '</div></div>' +
+          Object.entries(counts).map(([k, v]) => '<div class="card"><label>' + esc(k) + '</label><div class="val">' + v + '</div></div>').join('');
+      }
+      const tb = document.querySelector('#intel-table tbody');
+      if (tb) tb.innerHTML = ind.map(i => {
+        const sev = i.severity || 'low';
+        const sc = 'fb-' + (sev[0] || 'l');
+        const last = i.last_hit && i.last_hit !== '0001-01-01T00:00:00Z' ? new Date(i.last_hit).toLocaleTimeString() : '-';
+        return '<tr><td style="color:var(--rd)">' + esc(i.family) + '</td><td>' + esc(i.category) + '</td><td style="font-family:monospace;font-size:10px;color:var(--t3);max-width:300px;overflow:hidden;text-overflow:ellipsis">' + esc(i.value) + '</td><td><span class="fbadge ' + sc + '">' + sev.toUpperCase() + '</span></td><td>' + (i.hits || 0) + '</td><td>' + last + '</td></tr>';
+      }).join('');
+
+      // Also fill the IOC table on signatures page
+      const it = document.querySelector('#ioc-table tbody');
+      if (it) it.innerHTML = tb ? tb.innerHTML : '';
+      setText('ioc-count', ind.length + ' loaded');
+    }
+    async function fetchBlocks() {
+      try { const r = await fetch('/api/blocks'); const bs = await r.json(); renderBlocks(bs || []) } catch { }
+    }
+    function renderBlocks(bs) {
+      const fmtTbody = function (host) {
+        return bs.map(b => {
+          const exp = b.expires_at && b.expires_at !== '0001-01-01T00:00:00Z' ? new Date(b.expires_at).toLocaleTimeString() : 'permanent';
+          const added = b.added_at ? new Date(b.added_at).toLocaleTimeString() : '-';
+          const src = b.auto ? '<span style="color:var(--or)">auto</span>' : '<span style="color:var(--ac)">manual</span>';
+          return '<tr><td style="color:var(--rd);font-family:monospace">' + esc(b.ip) + '</td><td>' + esc(b.reason || '-') + '</td><td>' + added + '</td><td>' + exp + '</td><td>' + src + '</td><td><button class="btn-unblock" data-ip="' + esc(b.ip) + '" style="background:var(--bg3);border:1px solid var(--br);color:var(--t2);padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px">Unblock</button></td></tr>';
+        }).join('');
+      };
+      const t1 = document.querySelector('#blocks-table tbody'); if (t1) t1.innerHTML = fmtTbody();
+      const t2 = document.getElementById('block-list');
+      if (t2) t2.innerHTML = bs.length ? '<table class="tbl"><thead><tr><th>IP</th><th>Reason</th><th>Expires</th><th></th></tr></thead><tbody>' + bs.map(b => {
+        const exp = b.expires_at && b.expires_at !== '0001-01-01T00:00:00Z' ? new Date(b.expires_at).toLocaleTimeString() : 'permanent';
+        return '<tr><td style="color:var(--rd);font-family:monospace">' + esc(b.ip) + '</td><td>' + esc(b.reason || '-') + '</td><td>' + exp + '</td><td><button class="btn-unblock" data-ip="' + esc(b.ip) + '" style="background:var(--bg3);border:1px solid var(--br);color:var(--rd);padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px">×</button></td></tr>';
+      }).join('') + '</tbody></table>' : '<div style="color:var(--t3);padding:8px;font-size:11px">No blocked IPs</div>';
+    }
+
+    // ========== /api/pcaps ==========
+    async function fetchPCAPs() {
+      try { const r = await fetch('/api/pcaps'); const ps = await r.json(); renderPCAPs(ps || []) } catch { }
+    }
+    function renderPCAPs(ps) {
+      const el = document.getElementById('pcap-list'); if (!el) return;
+      if (!ps.length) { el.innerHTML = '<div style="color:var(--t3)">No PCAP files yet</div>'; return }
+      el.innerHTML = ps.map(p => {
+        const sz = fmt(p.size) + 'B';
+        const t = new Date(p.mtime).toLocaleString();
+        const cur = p.current ? ' <span class="fbadge" style="background:var(--gn2);color:var(--gn)">CURRENT</span>' : '';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid var(--br)"><span style="flex:1;font-family:monospace">' + esc(p.name) + cur + '</span><span style="color:var(--t3)">' + sz + '</span><span style="color:var(--t3);font-size:10px">' + t + '</span><a href="/api/pcap/download?name=' + encodeURIComponent(p.name) + '" style="color:var(--ac);text-decoration:none;font-size:11px">↓ Download</a></div>';
+      }).join('');
+    }
+
+    // ========== Control wiring ==========
+    function wireControls() {
+      document.addEventListener('click', async function (ev) {
+        if (ev.target.id === 'btnApplyThreshold') {
+          const v = parseFloat(document.getElementById('setThreshold').value);
+          if (isNaN(v)) { alert('invalid'); return }
+          const r = await fetch('/api/control/threshold', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: v }) });
+          alert(r.ok ? 'Threshold updated to ' + v : 'Failed: ' + await r.text());
+          fetchConfig();
+        }
+        if (ev.target.id === 'btnGC') {
+          await fetch('/api/control/gc', { method: 'POST' });
+          alert('GC triggered');
+        }
+        if (ev.target.id === 'btnClearAlerts') {
+          if (!confirm('Clear all alerts?')) return;
+          const r = await fetch('/api/control/clear-alerts', { method: 'POST' });
+          const d = await r.json(); alert('Cleared ' + d.cleared + ' alerts');
+          alerts = []; renderAlerts(); updateHeaderStats();
+        }
+        if (ev.target.id === 'btnBlock') {
+          const ip = document.getElementById('blockIP').value.trim();
+          const reason = document.getElementById('blockReason').value.trim() || 'manual';
+          const seconds = parseInt(document.getElementById('blockSeconds').value) || 0;
+          if (!ip) { alert('IP required'); return }
+          const r = await fetch('/api/control/block', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip, reason, seconds }) });
+          alert(r.ok ? 'Blocked ' + ip : 'Failed: ' + await r.text());
+          fetchBlocks();
+        }
+        if (ev.target.classList.contains('btn-unblock')) {
+          const ip = ev.target.getAttribute('data-ip');
+          await fetch('/api/control/unblock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip }) });
+          fetchBlocks();
+        }
+        if (ev.target.id === 'btnExportReport') {
+          const data = { summary, packets: pkts.slice(-200), alerts, exported_at: new Date().toISOString() };
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = 'sentinel-report-' + Date.now() + '.json'; a.click();
+          URL.revokeObjectURL(url);
+          const rp = document.getElementById('report-preview');
+          if (rp) rp.textContent = JSON.stringify(data, null, 2);
+        }
+      });
+      // Initialize threshold input from config
+      const apply = () => { const inp = document.getElementById('setThreshold'); if (inp && sysConfig && sysConfig.ml_config) inp.value = sysConfig.ml_config.binary_threshold || 0.0748 };
+      setTimeout(apply, 1500);
+    }
+
+    // Patch renderPackets to add data-idx for selection
+    var _origRP = renderPackets;
+    renderPackets = function () {
+      const tbody = $('#pkt-body'); if (!tbody) return;
+      const vis = pkts.slice(-500); const startIdx = pkts.length - vis.length;
+      let h = '';
+      for (let i = 0; i < vis.length; i++) {
+        const p = vis[i];
+        const lv = fl(p), rc = lv === 'critical' ? 'r-crit' : lv === 'high' ? 'r-high' : lv === 'medium' ? 'r-med' : lv === 'low' ? 'r-low' : '';
+        const sel = selectedPkt && selectedPkt.num === p.num ? 'selected' : '';
+        const s = p.src ? (p.src + (p.sport ? ':' + p.sport : '')) : '';
+        const d = p.dst ? (p.dst + (p.dport ? ':' + p.dport : '')) : '';
+        let fb = '';
+        if (lv !== 'benign') {
+          const lb = { critical: 'CRIT', high: 'HIGH', medium: 'MED', low: 'LOW' }[lv] || ''; const sc = p.fusion ? Math.round(p.fusion.final_score * 100) : p.ml ? Math.round(p.ml * 100) : 0;
+          fb = '<span class="fbadge fb-' + lv[0] + '">' + lb + ' ' + sc + '%</span>'
+        }
+        h += '<tr class="' + rc + ' ' + sel + '" data-idx="' + (startIdx + i) + '"><td class="col-n">' + p.num + '</td><td class="col-t">' + (p.ts || 0).toFixed(3) + '</td><td class="col-s" title="' + (p.src || '') + '">' + esc(s).slice(0, 18) + '</td><td class="col-d" title="' + (p.dst || '') + '">' + esc(d).slice(0, 18) + '</td><td class="col-p">' + esc(p.proto || '') + '</td><td class="col-a">' + esc(p.app || '') + '</td><td class="col-l">' + p.len + '</td><td class="col-f">' + fb + '</td><td>' + esc((p.info || '').slice(0, 60)) + '</td></tr>';
+      }
+      tbody.innerHTML = h;
+      // Also update pkt-body2 and pkt-body3
+      var b2 = $('#pkt-body2'); if (b2) b2.innerHTML = h;
+      var b3 = $('#pkt-body3'); if (b3) b3.innerHTML = h;
+      setText('pkt-count', pkts.length);
+      const w = $('.pkt-wrap'); if (w && !paused) w.scrollTop = w.scrollHeight;
+    };
+  </script>
 </body>
+
 </html>

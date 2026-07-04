@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build *)",
+      "Bash(go vet *)",
+      "Bash(grep \"//go:build\\\\|cgo\" \"C:/Users/deadd/go/pkg/mod/github.com/yalue/onnxruntime_go@v1.27.0/onnxruntime_go.go\")",
+      "Bash(rm internal/dashboard/template.html internal/dashboard/dash.js internal/dashboard/dash_ext.js internal/dashboard/dash.css)",
+      "Bash(rm CLAUDE_CODE_PROMPT.md sentinel-wsl)",
+      "Bash(rm -rf scratch)"
+    ]
+  }
+}
