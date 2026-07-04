@@ -1,14 +1,18 @@
 # Sentinel-Pi v3.0 — Deep Inspector
 
-**برودكت جاهز للإنتاج** — يشتغل على Raspberry Pi 4 (4GB RAM) مع:
+**A production-ready network security product** built for Raspberry Pi 4 devices with 4GB of RAM.
 
-- 📡 Packet capture بـ AF_PACKET (zero-copy, promiscuous)
-- 🔬 Deep Packet Inspection (Ethernet → TCP → DNS/HTTP/TLS/SSH/MQTT...)
-- 🧠 ML inference بـ 6 ONNX models (ensemble) — <0.5ms per flow
-- 📊 Feature extractor متطابق 100% مع الموديل المدرب (74 features)
-- 🎨 Dashboard شبيه Wireshark (HTTP + SSE)
-- 💾 PCAP rotation تلقائي (100MB cap)
-- 🛡️ Memory guard يمنع تجاوز 2.8 GB
+Sentinel-Pi combines high-performance packet capture, deep packet inspection, machine learning inference, and real-time visualization into a lightweight edge-ready IDS/IPS platform.
+
+## Core Capabilities
+
+* 📡 **High-performance packet capture** using AF_PACKET with zero-copy support and promiscuous mode
+* 🔬 **Deep Packet Inspection** from Ethernet and TCP layers up to DNS, HTTP, TLS, SSH, MQTT, and other protocols
+* 🧠 **Machine learning inference** powered by a 6-model ONNX ensemble, achieving less than 0.5 ms inference time per flow
+* 📊 **Model-aligned feature extraction** with 74 flow-level features matching the trained model pipeline
+* 🎨 **Wireshark-inspired dashboard** using HTTP and Server-Sent Events for live monitoring
+* 💾 **Automatic PCAP rotation** with a 100 MB storage cap
+* 🛡️ **Memory guard protection** to keep runtime memory usage below 2.8 GB
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
