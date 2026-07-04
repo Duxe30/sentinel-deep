@@ -227,12 +227,3 @@ sudo ./sentinel-pi --interface wlan0 \
 → Set `--pcap-dir /dev/shm/captures` to keep PCAPs in RAM.
 
 ---
-
-## 🎯 Next Steps
-
-- [ ] Add Threat Intelligence integration (Feodo, Emerging Threats)
-- [ ] iptables auto-block integration
-- [ ] JA3/JA3S fingerprint database matching
-- [ ] Beaconing detection (time-series analysis)
-- [ ] Multi-Pi clustering with central dashboard
-# sentinel-deep
